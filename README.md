@@ -1,5 +1,3 @@
-# Advance-concrete-technology-tools
-Web-based tools for concrete engineering: Shrinkage prediction (DPT 1332-25, B4 (RILEM TC-242), ACI209-92, CEB MC90-99, GL2000), Creep analysis, Compressive strength, and Thai Aggregate Database.
 # Civil Engineering Concrete Analysis & Material Database Portal
 
 ชุดเครื่องมือประมวลผลบนเว็บ (Web-based Applications) เพื่อการวิเคราะห์พฤติกรรมระยะยาวของคอนกรีตและการออกแบบส่วนผสม โดยบูรณาการมาตรฐานการทำนายสากลและมาตรฐานประเทศไทย (มยผ. 1332-25) ร่วมกับฐานข้อมูลคุณสมบัติมวลรวมท้องถิ่น
