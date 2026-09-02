@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B4 Professional Calculator V2</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .input-group { display: flex; flex-direction: column; margin-bottom: 0.75rem; }
+        .input-group label { font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
+        .input-group input, .input-group select { 
+            border: 1px solid #D1D5DB; border-radius: 0.375rem; padding: 0.375rem 0.75rem; font-size: 0.875rem; outline: none; transition: border-color 0.2s;
+        }
+        .input-group input:focus, .input-group select:focus { border-color: #3B82F6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        .tab-btn.active { background-color: #1E3A8A; color: white; border-color: #1E3A8A; }
+        .tab-btn.inactive { background-color: #F3F4F6; color: #4B5563; border-color: #D1D5DB; }
+        .tab-btn.inactive:hover { background-color: #E5E7EB; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <header class="bg-blue-900 text-white shadow-md py-4 px-6 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold">B4 Professional Calculator <span class="text-sm bg-blue-700 px-2 py-0.5 rounded ml-2">V2.0</span></h1>
+                <p class="text-blue-200 text-sm">Concrete Creep & Shrinkage Prediction Model (RILEM TC-242-MDC)</p>
+            </div>
+            <div class="hidden sm:flex flex-col items-end">
+                <span class="text-[10px] text-blue-300 font-medium tracking-wider mb-0.5">Developed by</span>
+                <span class="text-sm font-semibold bg-blue-800/80 px-3 py-1 rounded-full border border-blue-700/50 shadow-inner text-blue-50">
+                    Dr. Sontaya Tongaroonsri
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <div class="lg:col-span-4 bg-white rounded-xl shadow-sm border border-gray-200 p-5 overflow-y-auto max-h-[calc(100vh-120px)]">
+            <h2 class="text-lg font-bold border-b pb-2 mb-4 text-gray-800">Model Parameters</h2>
+            
+            <form id="calcForm" class="space-y-6">
+                <!-- Concrete Properties -->
+                <div>
+                    <h3 class="font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded mb-3 text-sm">1. Concrete Properties & Stress</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="input-group">
+                            <label>f̄c (MPa)</label>
+                            <input type="number" id="in_fc" value="27.6" step="0.1">
+                        </div>
+                        <div class="input-group">
+                            <label>w/c ratio</label>
+                            <input type="number" id="in_wc" value="0.60" step="0.01">
+                        </div>
+                        <div class="input-group">
+                            <label>a/c ratio</label>
+                            <input type="number" id="in_ac" value="7.0" step="0.1">
+                        </div>
+                        <div class="input-group">
+                            <label>Cement (kg/m³)</label>
+                            <input type="number" id="in_c" value="219.3" step="0.1">
+                        </div>
+                        <div class="input-group col-span-2">
+                            <label>Applied Stress, σ (MPa) <span class="text-gray-400 font-normal ml-1">*(Must be ≤ 0.4 f̄c)*</span></label>
+                            <input type="number" id="in_sigma" value="11.03" step="0.01">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Environment & Geometry -->
+                <div>
+                    <h3 class="font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded mb-3 text-sm">2. Environment & Geometry</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="input-group">
+                            <label>Humidity, h (%)</label>
+                            <input type="number" id="in_h" value="50">
+                        </div>
+                        <div class="input-group">
+                            <label>V/S ratio (mm)</label>
+                            <input type="number" id="in_vs" value="19.05" step="0.01">
+                        </div>
+                        <div class="input-group">
+                            <label>Env Temp, T (°C)</label>
+                            <input type="number" id="in_T" value="20" step="0.1">
+                        </div>
+                        <div class="input-group">
+                            <label>Curing Temp, Tcur (°C)</label>
+                            <input type="number" id="in_Tcur" value="20" step="0.1">
+                        </div>
+                        <div class="input-group">
+                            <label>Shape Factor (ks)</label>
+                            <select id="in_ks">
+                                <option value="1.00">Infinite Slab (1.0)</option>
+                                <option value="1.15">Infinite Cylinder (1.15)</option>
+                                <option value="1.25">Square Prism (1.25)</option>
+                                <option value="1.30">Sphere (1.30)</option>
+                                <option value="1.55">Cube (1.55)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Loading Age, t' (days)</label>
+                            <input type="number" id="in_tp" value="28">
+                        </div>
+                        <div class="input-group">
+                            <label>Drying Age, t0 (days)</label>
+                            <input type="number" id="in_t0" value="28">
+                        </div>
+                        <div class="input-group col-span-2">
+                            <label>Target Deflection Time, t-t' (days)</label>
+                            <input type="number" id="in_target_dt" value="84">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Classifications -->
+                <div>
+                    <h3 class="font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded mb-3 text-sm">3. Materials Classification</h3>
+                    <div class="input-group">
+                        <label>Cement Type</label>
+                        <select id="in_cem">
+                            <option value="R">R (Normal / Type I)</option>
+                            <option value="RS">RS (Rapid Hardening)</option>
+                            <option value="SL">SL (Slow Hardening)</option>
+                        </select>
+                    </div>
+                    
+                    <div id="rs_warning_box" class="hidden mb-3 bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-r text-sm text-yellow-800 shadow-sm">
+                        <strong>Caution (RS Cement):</strong> Based on RILEM B4 (2015) Table 2, the autogenous shrinkage parameter (ε_au,cem) for RS cement is -84×10⁻⁶. This strict adherence to the paper may result in an unphysical expansion calculation.
+                    </div>
+
+                    <div class="input-group">
+                        <label>Aggregate Type</label>
+                        <select id="in_agg">
+                            <option value="1,1">Unknown (Default: 1.0)</option>
+                            <option value="0.59,0.71">Quartzite</option>
+                            <option value="4.00,1.05">Granite</option>
+                            <option value="1.80,0.95">Limestone</option>
+                            <option value="2.30,1.60">Sandstone</option>
+                            <option value="0.06,0.76">Diabase</option>
+                            <option value="15.0,2.20">Quartz Diorite</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Admixtures -->
+                <div>
+                    <h3 class="font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded mb-3 text-sm">4. Admixtures (% of cement wt.)</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="chk_flyash" class="w-4 h-4 text-blue-600">
+                            <label for="chk_flyash" class="text-sm font-medium text-gray-700">Fly Ash (0-70%)</label>
+                            <input type="number" id="val_flyash" class="border rounded px-2 py-1 w-20 text-sm ml-auto bg-gray-50" value="20" disabled>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="chk_silica" class="w-4 h-4 text-blue-600">
+                            <label for="chk_silica" class="text-sm font-medium text-gray-700">Silica Fume (0-25%)</label>
+                            <input type="number" id="val_silica" class="border rounded px-2 py-1 w-20 text-sm ml-auto bg-gray-50" value="5" disabled>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="chk_superp" class="w-4 h-4 text-blue-600">
+                            <label for="chk_superp" class="text-sm font-medium text-gray-700">Superplasticizer (0-15%)</label>
+                            <input type="number" id="val_superp" class="border rounded px-2 py-1 w-20 text-sm ml-auto bg-gray-50" value="3" disabled>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="chk_retarder" class="w-4 h-4 text-blue-600">
+                            <label for="chk_retarder" class="text-sm font-medium text-gray-700">Retarder (%)</label>
+                            <input type="number" id="val_retarder" class="border rounded px-2 py-1 w-20 text-sm ml-auto bg-gray-50" value="0.4" step="0.1" disabled>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="chk_aea" class="w-4 h-4 text-blue-600">
+                            <label for="chk_aea" class="text-sm font-medium text-gray-700">Air Entraining (%)</label>
+                            <input type="number" id="val_aea" class="border rounded px-2 py-1 w-20 text-sm ml-auto bg-gray-50" value="0.04" step="0.01" disabled>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="chk_wr" class="w-4 h-4 text-blue-600">
+                            <label for="chk_wr" class="text-sm font-medium text-gray-700">Water Reducer (%)</label>
+                            <input type="number" id="val_wr" class="border rounded px-2 py-1 w-20 text-sm ml-auto bg-gray-50" value="1.5" step="0.1" disabled>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t flex flex-col gap-3">
+                    <button type="button" id="btnCalculate" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors">Calculate B4 Model</button>
+                    <button type="button" id="btnLoadEx" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg border border-gray-300 transition-colors text-sm flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        Load Verification Data (Example 1.9)
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="lg:col-span-8 space-y-4">
+            
+            <!-- Error Box -->
+            <div id="error_box" class="bg-red-50 border-l-4 border-red-500 p-4 rounded shadow-sm hidden">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800">Input Validation Error</h3>
+                        <p id="error_msg" class="text-sm text-red-700 mt-1"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="flex space-x-2 border-b border-gray-200">
+                <button id="tabBtnCreep" class="tab-btn active px-4 py-2 text-sm font-medium rounded-t-lg border-t border-l border-r transition-colors">
+                    Creep & Total Strain Analysis
+                </button>
+                <button id="tabBtnShrinkage" class="tab-btn inactive px-4 py-2 text-sm font-medium rounded-t-lg border-t border-l border-r transition-colors">
+                    Shrinkage Details (Eq. 13-26)
+                </button>
+            </div>
+
+            <div id="tabContentCreep" class="space-y-6 block">
+                <!-- Intermediate Parameters Panel -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                    <h2 class="text-sm font-bold border-b pb-2 mb-4 text-gray-800">Creep Compliance Parameters</h2>
+                    <div id="admix_info_box" class="mb-4 bg-blue-50 border-l-4 border-blue-500 p-3 hidden">
+                        <p class="text-xs text-blue-700">Applied Scaling (Table 5) - Creep Cond: <span id="info_cr_cond" class="font-bold">None</span></p>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                        <div class="bg-gray-50 p-2 rounded text-center">
+                            <div class="text-[10px] text-gray-500 font-medium uppercase tracking-wide">q1 (10⁻⁶/MPa)</div>
+                            <div class="text-lg font-bold text-gray-800 mt-1" id="out_q1">-</div>
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded text-center">
+                            <div class="text-[10px] text-gray-500 font-medium uppercase tracking-wide">q2 (10⁻⁶/MPa)</div>
+                            <div class="text-lg font-bold text-gray-800 mt-1" id="out_q2">-</div>
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded text-center">
+                            <div class="text-[10px] text-gray-500 font-medium uppercase tracking-wide">q3 (10⁻⁶/MPa)</div>
+                            <div class="text-lg font-bold text-gray-800 mt-1" id="out_q3">-</div>
+                        </div>
+                        <div class="bg-gray-50 p-2 rounded text-center">
+                            <div class="text-[10px] text-gray-500 font-medium uppercase tracking-wide">q4 (10⁻⁶/MPa)</div>
+                            <div class="text-lg font-bold text-gray-800 mt-1" id="out_q4">-</div>
+                        </div>
+                        <div class="bg-blue-50 p-2 rounded text-center border border-blue-200 shadow-sm">
+                            <div class="text-[10px] text-blue-600 font-bold uppercase tracking-wide">q5 (10⁻⁶/MPa)</div>
+                            <div class="text-lg font-bold text-blue-700 mt-1" id="out_q5">-</div>
+                        </div>
+                    </div>
+                    
+                    <!-- NEW Equation Trace Box (Creep) -->
+                    <div class="mt-4 bg-gray-800 rounded-lg shadow-inner border border-gray-700 p-4 text-green-400 font-mono text-[11px] overflow-x-auto relative">
+                        <div class="absolute top-0 right-0 bg-gray-700 text-gray-300 text-[10px] px-2 py-1 rounded-bl">Equation Trace (q parameters)</div>
+                        <div id="creep_trace_box" class="space-y-1.5 whitespace-nowrap">
+                            > Wait for calculation...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-2 h-64" id="chart_compliance"></div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-2 h-64" id="chart_creep_comp"></div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 overflow-hidden">
+                    <div class="flex justify-between items-end border-b pb-2 mb-4">
+                        <h2 class="text-lg font-bold text-gray-800">Time-Dependent Results (Creep Focus)</h2>
+                        <div class="flex items-center gap-3">
+                            <div class="text-sm font-semibold text-blue-800 bg-blue-100 px-3 py-1 rounded">
+                                <span id="label_total_strain">Total Strain @ Target</span>: <span id="out_total_strain" class="font-bold text-lg">-</span> <span class="text-xs font-normal">10⁻⁶</span>
+                            </div>
+                            <button id="btnExport" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded shadow transition flex items-center gap-2 text-xs font-medium">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Export Creep CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto max-h-[350px]">
+                        <table class="w-full text-sm text-left whitespace-nowrap">
+                            <thead class="text-[11px] text-gray-700 uppercase bg-gray-100 sticky top-0">
+                                <tr>
+                                    <th class="px-3 py-2">Load Dur. (t-t')</th>
+                                    <th class="px-3 py-2">Age (t)</th>
+                                    <th class="px-3 py-2">E(t) <span class="normal-case text-gray-500">GPa</span></th>
+                                    <th class="px-3 py-2">Total Sh. <span class="normal-case text-gray-500">10⁻⁶</span></th>
+                                    <th class="px-3 py-2">Rt·C0 <span class="normal-case text-gray-500">10⁻⁶/MPa</span></th>
+                                    <th class="px-3 py-2">Cd <span class="normal-case text-gray-500">10⁻⁶/MPa</span></th>
+                                    <th class="px-3 py-2">J(t,t') <span class="normal-case text-gray-500">10⁻⁶/MPa</span></th>
+                                    <th class="px-3 py-2">Creep φ</th>
+                                    <th class="px-3 py-2">Total Strain <span class="normal-case text-gray-500">10⁻⁶</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="result_tbody_creep" class="divide-y divide-gray-200">
+                                <tr><td colspan="9" class="px-4 py-4 text-center text-gray-500">Click Calculate to view results</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tabContentShrinkage" class="space-y-6 hidden">
+                
+                <!-- Calculation Trace Panel (Shrinkage) -->
+                <div class="bg-gray-800 rounded-xl shadow-sm border border-gray-700 p-5 text-green-400 font-mono text-[11px] overflow-hidden relative">
+                    <div class="absolute top-0 right-0 bg-gray-700 text-gray-300 text-[10px] px-2 py-1 rounded-bl">Equation Trace (Shrinkage)</div>
+                    <h2 class="text-white text-sm font-bold border-b border-gray-600 pb-2 mb-3 font-sans">Shrinkage Engine Trace (Eq.13 - 26)</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1.5" id="trace_box">
+                        <div>> Wait for calculation...</div>
+                    </div>
+                </div>
+
+                <!-- Shrinkage Chart -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3 h-80" id="chart_shrinkage_abs"></div>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3 h-80" id="chart_shrinkage_linear"></div>
+                </div>
+
+                <!-- Shrinkage Table -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 overflow-hidden">
+                    <div class="flex justify-between items-center border-b pb-2 mb-4">
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-lg font-bold text-gray-800">Shrinkage Evolution (Absolute Age)</h2>
+                            <div class="text-sm font-semibold text-red-800 bg-red-100 px-3 py-1 rounded" id="box_target_shrinkage">
+                                Target Total Sh.: <span id="out_target_shrinkage" class="font-bold text-lg">-</span> <span class="text-xs font-normal">10⁻⁶</span>
+                            </div>
+                        </div>
+                        <button id="btnExportShrinkage" class="bg-teal-600 hover:bg-teal-500 text-white px-3 py-1.5 rounded shadow transition flex items-center gap-2 text-xs font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Export Shrinkage CSV
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto max-h-[350px]">
+                        <table class="w-full text-sm text-center whitespace-nowrap">
+                            <thead class="text-[11px] text-gray-700 uppercase bg-gray-100 sticky top-0">
+                                <tr>
+                                    <th class="px-4 py-3 border-r">Abs. Age (t)</th>
+                                    <th class="px-4 py-3 border-r bg-red-50 text-red-800">Drying Dur. (t-t0)</th>
+                                    <th class="px-4 py-3">E(t) <span class="normal-case text-gray-500">GPa</span></th>
+                                    <th class="px-4 py-3 text-blue-600">Autogenous Shrinkage <span class="normal-case text-gray-500">10⁻⁶</span></th>
+                                    <th class="px-4 py-3 text-red-600">Drying Shrinkage <span class="normal-case text-gray-500">10⁻⁶</span></th>
+                                    <th class="px-4 py-3 font-bold">Total Shrinkage <span class="normal-case text-gray-500">10⁻⁶</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="result_tbody_shrinkage" class="divide-y divide-gray-200">
+                                <tr><td colspan="6" class="px-4 py-4 text-center text-gray-500">Click Calculate to view results</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // Constants (Engineering)
+        const GPA_TO_MPA = 1000.0;
+        const MICRO_STRAIN = 1e6;
+
+        // Tab Switching Logic
+        const tabBtnCreep = document.getElementById('tabBtnCreep');
+        const tabBtnShrinkage = document.getElementById('tabBtnShrinkage');
+        const tabContentCreep = document.getElementById('tabContentCreep');
+        const tabContentShrinkage = document.getElementById('tabContentShrinkage');
+
+        function switchTab(showCreep) {
+            if (showCreep) {
+                tabBtnCreep.className = 'tab-btn active px-4 py-2 text-sm font-medium rounded-t-lg border-t border-l border-r transition-colors';
+                tabBtnShrinkage.className = 'tab-btn inactive px-4 py-2 text-sm font-medium rounded-t-lg border-t border-l border-r transition-colors';
+                tabContentCreep.classList.remove('hidden');
+                tabContentShrinkage.classList.add('hidden');
+            } else {
+                tabBtnCreep.className = 'tab-btn inactive px-4 py-2 text-sm font-medium rounded-t-lg border-t border-l border-r transition-colors';
+                tabBtnShrinkage.className = 'tab-btn active px-4 py-2 text-sm font-medium rounded-t-lg border-t border-l border-r transition-colors';
+                tabContentCreep.classList.add('hidden');
+                tabContentShrinkage.classList.remove('hidden');
+            }
+        }
+        tabBtnCreep.addEventListener('click', () => switchTab(true));
+        tabBtnShrinkage.addEventListener('click', () => switchTab(false));
+
+        // RS Warning logic
+        document.getElementById('in_cem').addEventListener('change', function() {
+            let warningBox = document.getElementById('rs_warning_box');
+            if (this.value === 'RS') warningBox.classList.remove('hidden');
+            else warningBox.classList.add('hidden');
+        });
+
+        // Admixture Checkbox Logic
+        const toggles = ['chk_flyash', 'chk_silica', 'chk_superp', 'chk_retarder', 'chk_aea', 'chk_wr'];
+        toggles.forEach(id => {
+            document.getElementById(id).addEventListener('change', function() {
+                let inputId = 'val_' + id.split('_')[1];
+                let inputEl = document.getElementById(inputId);
+                inputEl.disabled = !this.checked;
+                inputEl.classList.toggle('bg-gray-50', !this.checked);
+            });
+        });
+
+        // Load Example 1.9
+        document.getElementById('btnLoadEx').addEventListener('click', () => {
+            document.getElementById('in_fc').value = 27.6;
+            document.getElementById('in_wc').value = 0.60;
+            document.getElementById('in_ac').value = 7.0;
+            document.getElementById('in_c').value = 219.3;
+            document.getElementById('in_h').value = 50;
+            document.getElementById('in_vs').value = 19.05; // ks=1.0 -> D=38.1
+            document.getElementById('in_T').value = 20;
+            document.getElementById('in_Tcur').value = 20;
+            document.getElementById('in_ks').value = "1.00";
+            document.getElementById('in_tp').value = 28;
+            document.getElementById('in_t0').value = 28;
+            document.getElementById('in_target_dt').value = 84; 
+            
+            let cemSel = document.getElementById('in_cem');
+            cemSel.value = "R";
+            cemSel.dispatchEvent(new Event('change')); // Trigger RS warning check
+            
+            document.getElementById('in_agg').value = "1,1";
+
+            // Set Admixtures (Only Fly ash ~20%)
+            toggles.forEach(id => { document.getElementById(id).checked = false; document.getElementById('val_' + id.split('_')[1]).disabled = true; });
+            document.getElementById('chk_flyash').checked = true;
+            let flyEl = document.getElementById('val_flyash');
+            flyEl.value = 20;
+            flyEl.disabled = false;
+            flyEl.classList.remove('bg-gray-50');
+
+            alert("Loaded parameters from Example 1.9 (Fly Ash Case). Click 'Calculate B4 Model' to trace.");
+        });
+
+        let currentCreepData = [];
+        let currentShrinkData = [];
+
+        // Base B4 Parameters (Tables 1, 2, 3)
+        // Note: eps_au_cem for RS is explicitly kept at -84e-6 based on B4 Table 2
+        const cement_params = {
+            'R':  { tau_cem: 0.016, p_tau_a: -0.33, p_tau_w: -0.06, p_tau_c: -0.10, eps_cem: 360e-6, p_eps_a: -0.80, p_eps_w: 1.10, p_eps_c: 0.11, tau_au_cem: 1.0, r_tau_w: 3.0, r_eps_a: -0.75, r_eps_w: -3.5, r_alpha: 1.0, eps_au_cem: 210e-6, p1: 0.70, p2: 58.6e-3, p3: 39.3e-3, p4: 3.4e-3, p5: 777e-6, p5H: 8.0, p2w: 3.0, p3a: -1.10, p3w: 0.40, p4a: -0.90, p4w: 2.45, p5e: -0.85, p5a: -1.0, p5w: 0.78 },
+            'RS': { tau_cem: 0.080, p_tau_a: -0.33, p_tau_w: -2.40, p_tau_c: -2.70, eps_cem: 860e-6, p_eps_a: -0.80, p_eps_w: -0.27, p_eps_c: 0.11, tau_au_cem: 41.0, r_tau_w: 3.0, r_eps_a: -0.75, r_eps_w: -3.5, r_alpha: 1.4, eps_au_cem: -84e-6, p1: 0.60, p2: 17.4e-3, p3: 39.3e-3, p4: 3.4e-3, p5: 94.6e-6, p5H: 1.0, p2w: 3.0, p3a: -1.10, p3w: 0.40, p4a: -0.90, p4w: 2.45, p5e: -0.85, p5a: -1.0, p5w: 0.78 },
+            'SL': { tau_cem: 0.010, p_tau_a: -0.33, p_tau_w: 3.55, p_tau_c: 3.80, eps_cem: 410e-6, p_eps_a: -0.80, p_eps_w: 1.00, p_eps_c: 0.11, tau_au_cem: 1.0, r_tau_w: 3.0, r_eps_a: -0.75, r_eps_w: -3.5, r_alpha: 1.0, eps_au_cem: 0, p1: 0.80, p2: 40.5e-3, p3: 39.3e-3, p4: 3.4e-3, p5: 496e-6, p5H: 8.0, p2w: 3.0, p3a: -1.10, p3w: 0.40, p4a: -0.90, p4w: 2.45, p5e: -0.85, p5a: -1.0, p5w: 0.78 }
+        };
+
+        function validateInputs(fc, wc, ac, c, sigma, h_perc, env_T, cur_T, vs, tp, t0, flyash_perc, silica_perc, superp_perc) {
+            let errors = [];
+            
+            // Basic Constraints
+            if (fc < 15 || fc > 70) errors.push(`f̄c must be 15 - 70 MPa. (Eq.3)`);
+            if (wc < 0.22 || wc > 0.87) errors.push(`w/c must be 0.22 - 0.87. (Eq.2)`);
+            if (ac < 1.0 || ac > 13.2) errors.push(`a/c must be 1.0 - 13.2. (Eq.2)`);
+            if (c < 200 || c > 1500) errors.push(`Cement content must be 200 - 1,500 kg/m³. (Eq.3)`);
+            if (h_perc < 0 || h_perc > 100) errors.push(`Humidity must be 0 - 100%.`);
+            if (env_T < -25 || env_T > 75) errors.push(`Env Temperature must be -25 to 75 °C. (Eq.4)`);
+            if (vs < 12 || vs > 120) errors.push(`V/S ratio must be 12 - 120 mm. (Eq.6)`);
+            
+            // Added validations per AI recommendations
+            if (tp <= 0) errors.push(`Loading Age (t') must be > 0.`);
+            if (t0 <= 0) errors.push(`Drying Age (t0) must be > 0.`);
+            let maxSigma = 0.4 * fc;
+            if (sigma > maxSigma) errors.push(`Applied Stress (σ) must be ≤ 0.4f̄c (${maxSigma.toFixed(2)} MPa) for linear creep assumption.`);
+            if (flyash_perc < 0 || flyash_perc > 70) errors.push(`Fly ash must be 0 - 70% of cement.`);
+            if (silica_perc < 0 || silica_perc > 25) errors.push(`Silica fume must be 0 - 25% of cement.`);
+            if (superp_perc < 0 || superp_perc > 15) errors.push(`Superplasticizer must be 0 - 15% of cement.`);
+
+            const errorBox = document.getElementById('error_box');
+            if (errors.length > 0) {
+                document.getElementById('error_msg').innerHTML = errors.join('<br>');
+                errorBox.classList.remove('hidden');
+                return false;
+            } else {
+                errorBox.classList.add('hidden');
+                return true;
+            }
+        }
+
+        document.getElementById('btnCalculate').addEventListener('click', () => {
+            try {
+                // Read Basic Inputs
+                let fc = parseFloat(document.getElementById('in_fc').value);
+                let wc = parseFloat(document.getElementById('in_wc').value);
+                let ac = parseFloat(document.getElementById('in_ac').value);
+                let c = parseFloat(document.getElementById('in_c').value);
+                let sigma = parseFloat(document.getElementById('in_sigma').value); 
+                let h = parseFloat(document.getElementById('in_h').value) / 100.0;
+                let env_T = parseFloat(document.getElementById('in_T').value);
+                let cur_T = parseFloat(document.getElementById('in_Tcur').value);
+                let vs = parseFloat(document.getElementById('in_vs').value);
+                let D = 2 * vs; 
+                let ks = parseFloat(document.getElementById('in_ks').value);
+                let tp = parseFloat(document.getElementById('in_tp').value);
+                let t0 = parseFloat(document.getElementById('in_t0').value);
+                let target_dt = parseFloat(document.getElementById('in_target_dt').value);
+                
+                // Read Admixtures for validation
+                let has_flyash = document.getElementById('chk_flyash').checked;
+                let flyash_perc = has_flyash ? parseFloat(document.getElementById('val_flyash').value) : 0;
+                let has_silica = document.getElementById('chk_silica').checked;
+                let silica_perc = has_silica ? parseFloat(document.getElementById('val_silica').value) : 0;
+                let has_superp = document.getElementById('chk_superp').checked;
+                let superp_perc = has_superp ? parseFloat(document.getElementById('val_superp').value) : 0;
+                let has_retarder = document.getElementById('chk_retarder').checked;
+                let re_perc = has_retarder ? parseFloat(document.getElementById('val_retarder').value) : 0;
+                let has_aea = document.getElementById('chk_aea').checked;
+                let aea_perc = has_aea ? parseFloat(document.getElementById('val_aea').value) : 0;
+                let has_wr = document.getElementById('chk_wr').checked;
+                let wr_perc = has_wr ? parseFloat(document.getElementById('val_wr').value) : 0;
+
+                if (!validateInputs(fc, wc, ac, c, sigma, h*100, env_T, cur_T, vs, tp, t0, flyash_perc, silica_perc, superp_perc)) return;
+
+                let cemType = document.getElementById('in_cem').value;
+                let aggParts = document.getElementById('in_agg').value.split(',');
+                let k_tau_a = parseFloat(aggParts[0]);
+                let k_eps_a = parseFloat(aggParts[1]);
+                let param = cement_params[cemType];
+
+                // Modulus Base
+                let E28 = (4734 * Math.sqrt(fc)) / GPA_TO_MPA; // Eq.(29)
+                const getEt = (E28_val, t_days) => E28_val * Math.sqrt(t_days / (4 + 0.857 * t_days)); // Eq.(19)
+
+                // Arrhenius
+                let beta_Th = Math.exp(4000 * ((1 / 293) - (1 / (cur_T + 273)))); 
+                let arrhenius_exponent = 4000 * ((1 / 293) - (1 / (env_T + 273)));
+                let beta_Ts = Math.exp(arrhenius_exponent); // Eq.(9)
+                let beta_Tc = Math.exp(arrhenius_exponent); // Eq.(10)
+                let R_T = Math.exp(arrhenius_exponent); // Eq.(39)
+
+                // Scale Factors (Table 4)
+                let x_tau_cem = 1.0, x_eps_au_cem = 1.0, x_r_eps_w = 1.0, x_r_alpha = 1.0;
+                if (has_retarder) {
+                    if (re_perc <= 0.5 && flyash_perc <= 15) { x_tau_cem = 6.00; x_eps_au_cem = 0.58; x_r_eps_w = 0.50; x_r_alpha = 2.60; }
+                    else if (re_perc > 0.5 && re_perc <= 0.6 && flyash_perc <= 15) { x_tau_cem = 2.00; x_eps_au_cem = 0.43; x_r_eps_w = 0.59; x_r_alpha = 3.10; }
+                    else if (re_perc > 0.5 && re_perc <= 0.6 && flyash_perc > 15 && flyash_perc <= 30) { x_tau_cem = 2.10; x_eps_au_cem = 0.72; x_r_eps_w = 0.88; x_r_alpha = 3.40; }
+                    else if (re_perc > 0.5 && re_perc <= 0.6 && flyash_perc > 30) { x_tau_cem = 2.80; x_eps_au_cem = 0.87; x_r_eps_w = 1.60; x_r_alpha = 5.00; }
+                    else if (re_perc > 0.6 && flyash_perc <= 15) { x_tau_cem = 2.00; x_eps_au_cem = 0.26; x_r_eps_w = 0.22; x_r_alpha = 0.95; }
+                    else if (re_perc > 0.6 && flyash_perc > 15 && flyash_perc <= 30) { x_tau_cem = 2.10; x_eps_au_cem = 1.10; x_r_eps_w = 1.10; x_r_alpha = 3.30; }
+                    else if (re_perc > 0.6 && flyash_perc > 30) { x_tau_cem = 2.10; x_eps_au_cem = 1.10; x_r_eps_w = 0.97; x_r_alpha = 4.00; }
+                } else if (has_flyash) {
+                    if (flyash_perc <= 15 && superp_perc <= 5) { x_tau_cem = 0.32; x_eps_au_cem = 0.71; x_r_eps_w = 0.55; x_r_alpha = 1.71; }
+                    else if (flyash_perc <= 15 && superp_perc > 5) { x_tau_cem = 0.32; x_eps_au_cem = 0.55; x_r_eps_w = 0.92; x_r_alpha = 2.30; }
+                    else if (flyash_perc > 15 && flyash_perc <= 30 && superp_perc <= 5) { x_tau_cem = 0.50; x_eps_au_cem = 0.90; x_r_eps_w = 0.82; x_r_alpha = 1.25; }
+                    else if (flyash_perc > 15 && flyash_perc <= 30 && superp_perc > 5) { x_tau_cem = 0.50; x_eps_au_cem = 0.80; x_r_eps_w = 0.80; x_r_alpha = 2.81; }
+                    else if (flyash_perc > 30 && superp_perc <= 5) { x_tau_cem = 0.63; x_eps_au_cem = 1.38; x_r_eps_w = 0.00; x_r_alpha = 1.20; }
+                    else if (flyash_perc > 30 && superp_perc > 5) { x_tau_cem = 0.63; x_eps_au_cem = 0.95; x_r_eps_w = 0.76; x_r_alpha = 3.11; }
+                } else if (has_superp && has_silica) {
+                    if (superp_perc <= 5 && silica_perc <= 8) { x_tau_cem = 6.00; x_eps_au_cem = 2.80; x_r_eps_w = 0.29; x_r_alpha = 0.21; }
+                    else if (superp_perc <= 5 && silica_perc > 8) { x_tau_cem = 3.00; x_eps_au_cem = 0.96; x_r_eps_w = 0.26; x_r_alpha = 0.71; }
+                    else { x_tau_cem = 8.00; x_eps_au_cem = 1.95; x_r_eps_w = 0.00; x_r_alpha = 1.00; }
+                } else if (has_silica) {
+                    if (silica_perc <= 8) { x_tau_cem = 1.90; x_eps_au_cem = 0.47; x_r_eps_w = 0.00; x_r_alpha = 1.20; }
+                    else if (silica_perc <= 18) { x_tau_cem = 2.60; x_eps_au_cem = 0.82; x_r_eps_w = 0.00; x_r_alpha = 1.20; }
+                    else { x_tau_cem = 1.00; x_eps_au_cem = 1.50; x_r_eps_w = 5.00; x_r_alpha = 1.00; }
+                } else if (has_aea) {
+                    if (aea_perc <= 0.05) { x_tau_cem = 2.30; x_eps_au_cem = 1.10; x_r_eps_w = 0.28; x_r_alpha = 0.35; }
+                    else { x_tau_cem = 0.44; x_eps_au_cem = 4.28; x_r_eps_w = 0.00; x_r_alpha = 0.36; }
+                } else if (has_wr) {
+                    if (wr_perc <= 2) { x_tau_cem = 0.50; x_eps_au_cem = 0.38; x_r_eps_w = 0.00; x_r_alpha = 1.90; }
+                    else if (wr_perc > 2 && wr_perc <= 3) { x_tau_cem = 6.00; x_eps_au_cem = 0.45; x_r_eps_w = 1.51; x_r_alpha = 0.30; }
+                    else { x_tau_cem = 2.40; x_eps_au_cem = 0.40; x_r_eps_w = 0.68; x_r_alpha = 1.40; }
+                }
+
+                // Scale Factors (Table 5)
+                let x_p2 = 1.0, x_p3 = 1.0, x_p4 = 1.0, x_p5 = 1.0;
+                let creep_admix_desc = "None";
+                if (has_retarder) {
+                    if (re_perc <= 0.5 && flyash_perc <= 15) { x_p2 = 0.31; x_p3 = 7.14; x_p4 = 1.35; x_p5 = 0.48; creep_admix_desc = "Re(≤0.5%), Fly(≤15%)"; }
+                    else { x_p2 = 1.43; x_p3 = 0.58; x_p4 = 0.90; x_p5 = 0.46; creep_admix_desc = "Re(>0.5%)"; }
+                } else if (has_flyash) {
+                    if (flyash_perc >= 15) { x_p2 = 0.37; x_p3 = 2.33; x_p4 = 0.63; x_p5 = 1.60; creep_admix_desc = "Fly(≥15%)"; }
+                } else if (has_superp) { x_p2 = 0.72; x_p3 = 2.19; x_p4 = 1.72; x_p5 = 0.48; creep_admix_desc = "Super(>0%)";
+                } else if (has_silica) { x_p2 = 1.12; x_p3 = 3.11; x_p4 = 0.51; x_p5 = 0.61; creep_admix_desc = "Silica(>0%)";
+                } else if (has_aea) { x_p2 = 0.90; x_p3 = 3.17; x_p4 = 1.00; x_p5 = 0.10; creep_admix_desc = "AEA(>0%)";
+                } else if (has_wr) {
+                    if (wr_perc <= 2) { x_p2 = 1.00; x_p3 = 2.10; x_p4 = 1.68; x_p5 = 0.45; creep_admix_desc = "WR(≤2%)"; }
+                    else if (wr_perc > 2 && wr_perc <= 3) { x_p2 = 1.41; x_p3 = 0.72; x_p4 = 1.76; x_p5 = 0.60; creep_admix_desc = "WR(2-3%)"; }
+                    else { x_p2 = 1.28; x_p3 = 2.58; x_p4 = 0.73; x_p5 = 1.10; creep_admix_desc = "WR(>3%)"; }
+                }
+                document.getElementById('admix_info_box').classList.remove('hidden');
+                document.getElementById('info_cr_cond').innerText = creep_admix_desc;
+
+                // Eq.(22)
+                let tau_0 = param.tau_cem * Math.pow(ac/6, param.p_tau_a) * Math.pow(wc/0.38, param.p_tau_w) * Math.pow(6.5*c/2350, param.p_tau_c) * x_tau_cem;
+                // Eq.(21)
+                let tau_sh = tau_0 * k_tau_a * Math.pow(ks * D, 2);
+                // Eq.(16)
+                let eps_0 = param.eps_cem * Math.pow(ac/6, param.p_eps_a) * Math.pow(wc/0.38, param.p_eps_w) * Math.pow(6.5*c/2350, param.p_eps_c);
+                // Eq.(17)
+                let eps_sh_inf = -eps_0 * k_eps_a * (getEt(E28, 7 * beta_Th + 600 * beta_Ts) / getEt(E28, t0 * beta_Th + tau_sh * beta_Ts)); 
+                // Eq.(20)
+                let k_h = (h <= 0.98) ? (1 - Math.pow(h, 3)) : (12.94*(1 - h) - 0.2);
+                
+                // Eq.(25)
+                let r_eps_w_mod = param.r_eps_w * x_r_eps_w;
+                let eps_au_inf = -param.eps_au_cem * Math.pow(ac/6, param.r_eps_a) * Math.pow(wc/0.38, r_eps_w_mod) * x_eps_au_cem;
+                // Eq.(26)
+                let tau_au = param.tau_au_cem * Math.pow(wc/0.38, param.r_tau_w);
+                // Eq.(24) base
+                let alpha_val = param.r_alpha * x_r_alpha * (wc/0.38);
+
+                // Update Shrinkage Trace (Replacing old plain text with nice HTML)
+                document.getElementById('trace_box').innerHTML = `
+                    <div class="col-span-1 md:col-span-2 text-[11px] mb-1"><span class="text-gray-400">Eq.(22) τ₀</span> = ${param.tau_cem.toFixed(3)} × (${ac.toFixed(1)}/6)^${param.p_tau_a} × (${wc.toFixed(2)}/0.38)^${param.p_tau_w} × (6.5×${c.toFixed(1)}/2350)^${param.p_tau_c} × ${x_tau_cem.toFixed(2)} = <strong>${tau_0.toFixed(2)}</strong> days</div>
+                    <div class="col-span-1 md:col-span-2 text-[11px] mb-1"><span class="text-gray-400">Eq.(21) τ_sh</span> = ${tau_0.toFixed(2)} × ${k_tau_a.toFixed(2)} × (${ks.toFixed(2)} × ${D.toFixed(1)})² = <strong>${tau_sh.toFixed(2)}</strong> days</div>
+                    <div class="col-span-1 md:col-span-2 text-[11px] mb-1"><span class="text-gray-400">Eq.(16) ε₀</span> = ${(param.eps_cem*MICRO_STRAIN).toFixed(1)}×10⁻⁶ × (${ac.toFixed(1)}/6)^${param.p_eps_a} × (${wc.toFixed(2)}/0.38)^${param.p_eps_w} × (6.5×${c.toFixed(1)}/2350)^${param.p_eps_c} = <strong>${(eps_0 * MICRO_STRAIN).toFixed(1)}×10⁻⁶</strong></div>
+                    <div class="col-span-1 md:col-span-2 text-[11px] mb-1"><span class="text-gray-400">Eq.(17) ε_sh,∞</span> = -${(Math.abs(eps_0 * MICRO_STRAIN)).toFixed(1)}×10⁻⁶ × ${k_eps_a.toFixed(2)} × [ E(607) / E(${(t0*beta_Th + tau_sh*beta_Ts).toFixed(1)}) ] = <strong>${(eps_sh_inf * MICRO_STRAIN).toFixed(1)}×10⁻⁶</strong></div>
+                    <div class="col-span-1 md:col-span-2 text-[11px] mb-1"><span class="text-gray-400">Eq.(20) k_h</span> = <strong>${k_h.toFixed(3)}</strong></div>
+                    <div class="col-span-1 md:col-span-2 text-[11px] mb-1"><span class="text-gray-400">Eq.(25) ε_au,∞</span> = -${(Math.abs(param.eps_au_cem*MICRO_STRAIN)).toFixed(1)}×10⁻⁶ × (${ac.toFixed(1)}/6)^${param.r_eps_a} × (${wc.toFixed(2)}/0.38)^${r_eps_w_mod.toFixed(2)} × ${x_eps_au_cem.toFixed(2)} = <strong>${(eps_au_inf * MICRO_STRAIN).toFixed(1)}×10⁻⁶</strong></div>
+                    <div class="col-span-1 md:col-span-2 text-[11px] mb-1"><span class="text-gray-400">Eq.(26) τ_au</span> = ${param.tau_au_cem.toFixed(2)} × (${wc.toFixed(2)}/0.38)^${param.r_tau_w} = <strong>${tau_au.toFixed(2)}</strong> days</div>
+                    <div class="col-span-1 md:col-span-2 text-[11px] mb-1"><span class="text-gray-400">Eq.(24) α</span> = ${param.r_alpha.toFixed(2)} × ${x_r_alpha.toFixed(2)} × (${wc.toFixed(2)}/0.38) = <strong>${alpha_val.toFixed(3)}</strong></div>
+                `;
+
+                let q1 = (param.p1 / E28) * GPA_TO_MPA; // Eq.(28)
+                let q2 = param.p2 * Math.pow(wc/0.38, param.p2w) * x_p2 * GPA_TO_MPA; // Eq.(40)
+                let q3 = param.p3 * q2 * Math.pow(ac/6, param.p3a) * Math.pow(wc/0.38, param.p3w) * x_p3; // Eq.(41)
+                let q4 = param.p4 * Math.pow(ac/6, param.p4a) * Math.pow(wc/0.38, param.p4w) * x_p4 * GPA_TO_MPA; // Eq.(42)
+                let q5 = param.p5 * Math.pow(ac/6, param.p5a) * Math.pow(wc/0.38, param.p5w) * Math.pow(Math.abs(k_h * eps_sh_inf), param.p5e) * x_p5 * GPA_TO_MPA; // Eq.(43)
+
+                // Update Creep Trace (q1 to q5 full substitution)
+                let creepTraceBox = document.getElementById('creep_trace_box');
+                if(creepTraceBox) {
+                    creepTraceBox.innerHTML = `
+                        <div class="mb-1"><span class="text-gray-400">Eq.(28) q₁</span> = (${param.p1.toFixed(2)} / ${E28.toFixed(2)}) × 1000 = <strong>${q1.toFixed(2)}</strong></div>
+                        <div class="mb-1"><span class="text-gray-400">Eq.(40) q₂</span> = ${(param.p2*1000).toFixed(1)}×10⁻³ × (${wc.toFixed(2)}/0.38)^${param.p2w} × ${x_p2.toFixed(2)} × 1000 = <strong>${q2.toFixed(2)}</strong></div>
+                        <div class="mb-1"><span class="text-gray-400">Eq.(41) q₃</span> = ${param.p3.toFixed(3)} × ${q2.toFixed(2)} × (${ac.toFixed(1)}/6)^${param.p3a} × (${wc.toFixed(2)}/0.38)^${param.p3w} × ${x_p3.toFixed(2)} = <strong>${q3.toFixed(2)}</strong></div>
+                        <div class="mb-1"><span class="text-gray-400">Eq.(42) q₄</span> = ${(param.p4*1000).toFixed(1)}×10⁻³ × (${ac.toFixed(1)}/6)^${param.p4a} × (${wc.toFixed(2)}/0.38)^${param.p4w} × ${x_p4.toFixed(2)} × 1000 = <strong>${q4.toFixed(2)}</strong></div>
+                        <div class="mb-1"><span class="text-gray-400">Eq.(43) q₅</span> = ${(param.p5*1e6).toFixed(1)}×10⁻⁶ × (${ac.toFixed(1)}/6)^${param.p5a} × (${wc.toFixed(2)}/0.38)^${param.p5w} × |${k_h.toFixed(3)} × ${(eps_sh_inf*MICRO_STRAIN).toFixed(1)}×10⁻⁶|^${param.p5e} × ${x_p5.toFixed(2)} × 1000 = <strong>${q5.toFixed(2)}</strong></div>
+                    `;
+                }
+
+                document.getElementById('out_q1').innerText = q1.toFixed(2);
+                document.getElementById('out_q2').innerText = q2.toFixed(2);
+                document.getElementById('out_q3').innerText = q3.toFixed(2);
+                document.getElementById('out_q4').innerText = q4.toFixed(2);
+                document.getElementById('out_q5').innerText = q5.toFixed(2);
+                
+                // Build Export Parameter String for CSV Header
+                let paramStr = `"--- B4 MODEL INPUT PARAMETERS ---"\n`;
+                paramStr += `"fc (MPa)",${fc}\n"w/c",${wc}\n"a/c",${ac}\n"Cement (kg/m3)",${c}\n"Stress (MPa)",${sigma}\n`;
+                paramStr += `"Humidity (%)",${h*100}\n"V/S (mm)",${vs}\n"Environmental Temp (C)",${env_T}\n"Curing Temp (C)",${cur_T}\n"Shape Factor (ks)",${ks}\n`;
+                paramStr += `"Loading Age tp (days)",${tp}\n"Drying Age t0 (days)",${t0}\n`;
+                paramStr += `"Cement Type","${cemType}"\n"Aggregate Type","${document.getElementById('in_agg').options[document.getElementById('in_agg').selectedIndex].text}"\n`;
+                paramStr += `"Fly Ash (%)",${flyash_perc}\n"Silica Fume (%)",${silica_perc}\n"Superplasticizer (%)",${superp_perc}\n`;
+                paramStr += `"Retarder (%)",${re_perc}\n"AEA (%)",${aea_perc}\n"Water Reducer (%)",${wr_perc}\n`;
+                paramStr += `\n"--- INTERMEDIATE PARAMETERS ---"\n`;
+                paramStr += `"tau_sh (days)",${tau_sh.toFixed(2)}\n"eps_sh_inf (10^-6)",${(eps_sh_inf * MICRO_STRAIN).toFixed(2)}\n`;
+                paramStr += `"q1",${q1.toFixed(2)}\n"q2",${q2.toFixed(2)}\n"q3",${q3.toFixed(2)}\n"q4",${q4.toFixed(2)}\n"q5",${q5.toFixed(2)}\n`;
+                paramStr += `\n"--- CALCULATED DATA ---"\n`;
+                window.currentParamCSV = paramStr; // Store globally for export buttons
+
+                let dt_creep_arr = [0.001, 1, 3, 5, 7, 14, 28, 84, 90, 180, 365, 730, 3650, 10000];
+                if (target_dt >= 0 && !dt_creep_arr.includes(target_dt)) {
+                    dt_creep_arr.push(target_dt);
+                    dt_creep_arr.sort((a, b) => a - b);
+                }
+
+                let target_abs_t = tp + target_dt;
+                let t_abs_arr = [1, 3, 7, 14, 28, 56, 90, 180, 365, 730, 3650, 10000];
+                
+                // เพิ่มอายุสัมบูรณ์ (t) ที่สัมพันธ์กับระยะเวลาการแห้งตัว (t - t0) ตามที่ต้องการ
+                let requested_drying_durations = [1, 3, 5, 7, 14, 28, 60, 90, 180, 365];
+                requested_drying_durations.forEach(dur => {
+                    let target_t = t0 + dur;
+                    if (!t_abs_arr.includes(target_t)) {
+                        t_abs_arr.push(target_t);
+                    }
+                });
+
+                if (!t_abs_arr.includes(t0)) { t_abs_arr.push(t0); }
+                if (!t_abs_arr.includes(tp)) { t_abs_arr.push(tp); }
+                if (!t_abs_arr.includes(target_abs_t)) { t_abs_arr.push(target_abs_t); }
+                t_abs_arr.sort((a, b) => a - b);
+
+                currentCreepData = [];
+                currentShrinkData = [];
+                let pCreep = { t: [], J: [], C0: [], Cd: [] };
+                let pShrink = { t: [], sh: [], au: [], shtot: [] };
+
+                let tbodyCr = document.getElementById('result_tbody_creep');
+                let tbodySh = document.getElementById('result_tbody_shrinkage');
+                tbodyCr.innerHTML = ''; 
+                tbodySh.innerHTML = '';
+
+                // Shrinkage Loop
+                for (let i = 0; i < t_abs_arr.length; i++) {
+                    let t = t_abs_arr[i];
+                    let t_tilde = (t >= t0) ? (t - t0) * beta_Ts : 0;
+                    let t_eq_au = t_tilde + (t0 * beta_Th); 
+
+                    let Et = getEt(E28, t_eq_au); // Eq.(19)
+                    
+                    // Eq.(15, 14)
+                    let S_t = (t >= t0) ? Math.tanh(Math.sqrt(t_tilde / tau_sh)) : 0;
+                    let eps_sh = eps_sh_inf * k_h * S_t;
+                    // Eq.(24)
+                    let eps_au = eps_au_inf * Math.pow(1 + Math.pow(tau_au / t, alpha_val), -4.5);
+                    let eps_sh_total = eps_sh + eps_au;
+
+                    pShrink.t.push(t);
+                    pShrink.sh.push(eps_sh * MICRO_STRAIN);
+                    pShrink.au.push(eps_au * MICRO_STRAIN);
+                    pShrink.shtot.push(eps_sh_total * MICRO_STRAIN);
+
+                    let dt_dry = (t >= t0) ? (t - t0) : 0;
+                    
+                    currentShrinkData.push({
+                        t: t,
+                        dt_dry: dt_dry,
+                        Et: Et,
+                        eps_au: eps_au * MICRO_STRAIN,
+                        eps_sh: eps_sh * MICRO_STRAIN,
+                        eps_sh_total: eps_sh_total * MICRO_STRAIN
+                    });
+
+                    let rHtml = `<td class="px-4 py-2 font-medium">${t}</td>
+                                 <td class="px-4 py-2 text-red-700">${dt_dry.toFixed(1)}</td>
+                                 <td class="px-4 py-2">${Et.toFixed(2)}</td>
+                                 <td class="px-4 py-2 text-blue-600">${(eps_au * MICRO_STRAIN).toFixed(1)}</td>
+                                 <td class="px-4 py-2 text-red-600">${(eps_sh * MICRO_STRAIN).toFixed(1)}</td>
+                                 <td class="px-4 py-2 font-bold">${(eps_sh_total * MICRO_STRAIN).toFixed(1)}</td>`;
+                    let tr = document.createElement('tr');
+                    
+                    let isHighlightSh = (t === target_abs_t) ? "bg-red-100 font-bold border-y-2 border-red-400" : ((t === t0 || t === tp) ? "bg-gray-200 font-semibold" : (i%2 === 1 ? "bg-gray-50" : ""));
+                    tr.className = isHighlightSh;
+                    tr.innerHTML = rHtml;
+                    tbodySh.appendChild(tr);
+
+                    if (t === target_abs_t) {
+                        let outTargetShrinkage = document.getElementById('out_target_shrinkage');
+                        if(outTargetShrinkage) outTargetShrinkage.innerText = (eps_sh_total * MICRO_STRAIN).toFixed(1);
+                    }
+                }
+
+                // Creep Loop
+                for (let i = 0; i < dt_creep_arr.length; i++) {
+                    let dt = dt_creep_arr[i]; 
+                    let t = tp + dt;    
+
+                    let tp_eq = (tp >= t0) ? (t0 * beta_Th + (tp - t0) * beta_Ts) : (tp * beta_Th);
+                    let t_eq = tp_eq + dt * beta_Tc;
+                    let dt_eq = dt * beta_Tc;
+                    
+                    let t_tilde = (t >= t0) ? (t - t0) * beta_Ts : 0;
+                    let t_eq_au = t_tilde + (t0 * beta_Th); 
+                    let Et = getEt(E28, t_eq_au); 
+
+                    // Shrinkage at this t
+                    let S_t = (t >= t0) ? Math.tanh(Math.sqrt(t_tilde / tau_sh)) : 0;
+                    let eps_sh = eps_sh_inf * k_h * S_t;
+                    let eps_au = eps_au_inf * Math.pow(1 + Math.pow(tau_au / t, alpha_val), -4.5);
+                    let eps_sh_total = eps_sh + eps_au;
+
+                    // Basic Creep
+                    let r = 1.7 * Math.pow(tp_eq, 0.12) + 8;
+                    let Z = Math.pow(tp_eq, -0.5) * Math.log(1 + Math.pow(dt_eq, 0.1));
+                    let Qf = Math.pow(0.086 * Math.pow(tp_eq, 2/9) + 1.21 * Math.pow(tp_eq, 4/9), -1);
+                    let Q = Qf * Math.pow(1 + Math.pow(Qf / Z, r), -1/r);
+                    let C0 = q2 * Q + q3 * Math.log(1 + Math.pow(dt_eq, 0.1)) + q4 * Math.log(t_eq / tp_eq);
+                    let C0_RT = R_T * C0;
+
+                    // Drying Creep
+                    let H_t = (t >= t0) ? 1 - (1 - h) * S_t : 1.0;
+                    let tp_tilde = (tp >= t0) ? (tp - t0) * beta_Ts : 0;
+                    let H_c = (tp >= t0) ? 1 - (1 - h) * Math.tanh(Math.sqrt(tp_tilde / tau_sh)) : 1.0;
+                    let Cd = 0;
+                    if (t >= Math.max(tp, t0)) {
+                        let exp_diff = Math.exp(-param.p5H * H_t) - Math.exp(-param.p5H * H_c);
+                        Cd = q5 * Math.pow(Math.max(exp_diff, 0), 0.5);
+                    }
+
+                    // Total
+                    let J = q1 + C0_RT + Cd;
+                    let E_loading = getEt(E28, tp); 
+                    let phi = E_loading * (J / GPA_TO_MPA) - 1; 
+                    
+                    let eps_e = -(q1 * sigma); 
+                    let eps_cr = -((C0_RT + Cd) * sigma);
+                    let eps_total = eps_e + eps_cr + (eps_sh_total * MICRO_STRAIN);
+
+                    if (dt >= 0.001) {
+                        pCreep.t.push(dt);
+                        pCreep.J.push(J);  
+                        pCreep.C0.push(C0_RT); 
+                        pCreep.Cd.push(Cd);
+                    }
+
+                    currentCreepData.push({ 
+                        dt, t, Et, 
+                        eps_sh: eps_sh * MICRO_STRAIN, 
+                        eps_au: eps_au * MICRO_STRAIN, 
+                        eps_shrinkage: eps_sh_total * MICRO_STRAIN, 
+                        C0_RT, Cd, J, phi, eps_tot: eps_total 
+                    });
+                    
+                    let isHighlight = (dt === target_dt) ? "bg-blue-100 font-bold border-y-2 border-blue-400" : (i%2 === 1 ? "bg-gray-50" : "");
+                    let tr = document.createElement('tr');
+                    tr.className = isHighlight;
+                    tr.innerHTML = `
+                        <td class="px-3 py-2 font-medium">${dt}</td>
+                        <td class="px-3 py-2 text-gray-500">${t}</td>
+                        <td class="px-3 py-2">${Et.toFixed(2)}</td>
+                        <td class="px-3 py-2 font-semibold text-red-600">${(eps_sh_total * MICRO_STRAIN).toFixed(1)}</td>
+                        <td class="px-3 py-2">${C0_RT.toFixed(1)}</td>
+                        <td class="px-3 py-2">${Cd.toFixed(1)}</td>
+                        <td class="px-3 py-2 font-semibold text-blue-700">${J.toFixed(1)}</td>
+                        <td class="px-3 py-2 text-purple-700 font-semibold">${phi.toFixed(2)}</td>
+                        <td class="px-3 py-2 font-bold text-blue-900 bg-blue-50/50">${eps_total.toFixed(1)}</td>
+                    `;
+                    tbodyCr.appendChild(tr);
+
+                    if (dt === target_dt) {
+                        document.getElementById('out_total_strain').innerText = eps_total.toFixed(1);
+                    }
+                }
+
+                let layout_base = { 
+                    margin: { t: 30, b: 40, l: 50, r: 20 }, font: {family: 'Inter, sans-serif', size: 10},
+                    xaxis: { type: 'log', title: "Duration (days)" }, 
+                    showlegend: true, legend: {x: 0.05, y: 0.95, bgcolor: 'rgba(255,255,255,0.8)'}
+                };
+
+                Plotly.newPlot('chart_compliance', 
+                    [{ x: pCreep.t, y: pCreep.J, mode: 'lines', name: 'J(t,t\')', line: {color: '#1d4ed8', width: 2} }],
+                    { ...layout_base, xaxis: { type: 'log', title: "Load Duration t - t' (days)" }, title: 'Total Compliance J [10⁻⁶/MPa]', yaxis: {title: 'J(t,t\')'} }, {responsive: true}
+                );
+
+                Plotly.newPlot('chart_creep_comp', 
+                    [
+                        { x: pCreep.t, y: pCreep.C0, stackgroup: 'one', mode: 'none', name: 'Basic Creep (C0)', fillcolor: 'rgba(59, 130, 246, 0.6)' },
+                        { x: pCreep.t, y: pCreep.Cd, stackgroup: 'one', mode: 'none', name: 'Drying Creep (Cd)', fillcolor: 'rgba(14, 165, 233, 0.6)' }
+                    ],
+                    { ...layout_base, xaxis: { type: 'log', title: "Load Duration t - t' (days)" }, title: 'Creep Components [10⁻⁶/MPa]', yaxis: {title: 'Compliance'} }, {responsive: true}
+                );
+
+                // Shrinkage chart uses Absolute Age (t)
+                Plotly.newPlot('chart_shrinkage_abs', 
+                    [
+                        { x: pShrink.t, y: pShrink.shtot, mode: 'lines', name: 'Total Shrinkage', line: {color: '#111827', width: 3} },
+                        { x: pShrink.t, y: pShrink.au, mode: 'lines', name: 'Autogenous Shrinkage', line: {color: '#2563eb', dash: 'dot', width: 2} },
+                        { x: pShrink.t, y: pShrink.sh, mode: 'lines', name: 'Drying Shrinkage', line: {color: '#dc2626', dash: 'dash', width: 2} }
+                    ],
+                    { ...layout_base, xaxis: { type: 'log', title: "Absolute Age t (days) [LOG SCALE]" }, title: 'Shrinkage Strain vs Absolute Age [10⁻⁶]', yaxis: {title: 'Strain', autorange: 'reversed'} }, {responsive: true}
+                );
+
+                // Filter data for Linear Chart (0-365 days)
+                let lin_t = [], lin_shtot = [], lin_au = [], lin_sh = [];
+                for(let i = 0; i < pShrink.t.length; i++) {
+                    if(pShrink.t[i] <= 365) {
+                        lin_t.push(pShrink.t[i]);
+                        lin_shtot.push(pShrink.shtot[i]);
+                        lin_au.push(pShrink.au[i]);
+                        lin_sh.push(pShrink.sh[i]);
+                    }
+                }
+
+                Plotly.newPlot('chart_shrinkage_linear', 
+                    [
+                        { x: lin_t, y: lin_shtot, mode: 'lines', name: 'Total Shrinkage', line: {color: '#111827', width: 3} },
+                        { x: lin_t, y: lin_au, mode: 'lines', name: 'Autogenous Shrinkage', line: {color: '#2563eb', dash: 'dot', width: 2} },
+                        { x: lin_t, y: lin_sh, mode: 'lines', name: 'Drying Shrinkage', line: {color: '#dc2626', dash: 'dash', width: 2} }
+                    ],
+                    { ...layout_base, xaxis: { type: 'linear', title: "Absolute Age t (days) [0-365 DAYS]" }, title: 'Shrinkage Strain (0-365 Days) Linear', yaxis: {title: 'Strain', autorange: 'reversed'} }, {responsive: true}
+                );
+
+            } catch (err) {
+                console.error("Calculation Error: ", err);
+                const errorBox = document.getElementById('error_box');
+                document.getElementById('error_msg').innerText = "An internal math error occurred. Check console for details.";
+                errorBox.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('btnExport').addEventListener('click', () => {
+            if (currentCreepData.length === 0) {
+                alert("Please calculate first before exporting.");
+                return;
+            }
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            csvContent += (window.currentParamCSV || "");
+            csvContent += "Load_Duration(dt),Absolute_Age(t),E(t)_GPa,Drying_Shrink_uS,Autogenous_uS,Total_Shrink_uS,Basic_Creep_C0,Drying_Creep_Cd,Compliance_J,Creep_Coef_Phi,Total_Strain_uS\n";
+            currentCreepData.forEach(row => {
+                let r = `${row.dt},${row.t},${row.Et.toFixed(4)},${row.eps_sh.toFixed(2)},${row.eps_au.toFixed(2)},${row.eps_shrinkage.toFixed(2)},${row.C0_RT.toFixed(2)},${row.Cd.toFixed(2)},${row.J.toFixed(2)},${row.phi.toFixed(4)},${row.eps_tot.toFixed(2)}`;
+                csvContent += r + "\n";
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "B4_Creep_Analysis_Results.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        document.getElementById('btnExportShrinkage').addEventListener('click', () => {
+            if (currentShrinkData.length === 0) {
+                alert("Please calculate first before exporting.");
+                return;
+            }
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            csvContent += (window.currentParamCSV || "");
+            csvContent += "Absolute_Age_t,Drying_Duration_t_t0,E(t)_GPa,Autogenous_Shrinkage_uS,Drying_Shrinkage_uS,Total_Shrinkage_uS\n";
+            currentShrinkData.forEach(row => {
+                let r = `${row.t},${row.dt_dry.toFixed(1)},${row.Et.toFixed(4)},${row.eps_au.toFixed(2)},${row.eps_sh.toFixed(2)},${row.eps_sh_total.toFixed(2)}`;
+                csvContent += r + "\n";
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "B4_Shrinkage_Details.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // Initialize
+        window.onload = () => document.getElementById('btnCalculate').click();
+    </script>
+</body>
+</html>

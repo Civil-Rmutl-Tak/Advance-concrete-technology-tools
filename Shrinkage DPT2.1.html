@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DPT 1332-25 Shrinkage Calculator V2.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .input-group { display: flex; flex-direction: column; margin-bottom: 0.75rem; }
+        .input-group label { font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
+        .input-group input, .input-group select { 
+            border: 1px solid #D1D5DB; border-radius: 0.375rem; padding: 0.375rem 0.75rem; font-size: 0.875rem; outline: none; transition: border-color 0.2s;
+        }
+        .input-group input:focus, .input-group select:focus { border-color: #059669; box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2); }
+        .input-group input:disabled { background-color: #F3F4F6; color: #6B7280; cursor: not-allowed; }
+        .section-title { font-size: 0.875rem; font-weight: 600; color: #065f46; background-color: #d1fae5; padding: 0.35rem 0.75rem; border-radius: 0.25rem; margin-bottom: 0.75rem; }
+        
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #10b981; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #059669; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <header class="bg-emerald-800 text-white shadow-md py-4 px-6 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight">DPT 1332-25 Calculator <span class="text-sm bg-emerald-600 px-2 py-0.5 rounded ml-2 align-middle">V2.0</span></h1>
+                <p class="text-emerald-200 text-sm mt-1">Concrete Shrinkage Prediction Model (Thai Standard 2025)</p>
+            </div>
+            <div class="hidden sm:flex flex-col items-end">
+                <span class="text-[10px] text-emerald-300 font-medium tracking-wider mb-0.5">Mix Design Integration</span>
+                <span class="text-sm font-semibold bg-emerald-700/80 px-3 py-1 rounded-full border border-emerald-600/50 shadow-inner text-emerald-50">
+                    Durability Design
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Panel: Inputs -->
+        <div class="lg:col-span-4 bg-white rounded-xl shadow-sm border border-gray-200 p-5 overflow-y-auto max-h-[calc(100vh-120px)] custom-scrollbar flex flex-col gap-5">
+            
+            <form id="calcForm" class="space-y-5">
+                <!-- 1. Mix Design -->
+                <div>
+                    <h3 class="section-title">1. Concrete Mix Proportions (kg/m&sup3;)</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="input-group">
+                            <label>Cement</label>
+                            <input type="number" id="mix_c" value="327.3" step="0.1" class="mix-input">
+                        </div>
+                        <div class="input-group">
+                            <label>Water</label>
+                            <input type="number" id="mix_w" value="180" step="0.1" class="mix-input">
+                        </div>
+                        <div class="input-group">
+                            <label>Fly Ash (FA)</label>
+                            <input type="number" id="mix_fa" value="0" step="0.1" class="mix-input">
+                        </div>
+                        <div class="input-group">
+                            <label>Limestone Pwd (LP)</label>
+                            <input type="number" id="mix_lp" value="0" step="0.1" class="mix-input">
+                        </div>
+                        <div class="input-group">
+                            <label>Sand (Fine Agg.)</label>
+                            <input type="number" id="mix_sand" value="716.6" step="0.1" class="mix-input">
+                        </div>
+                        <div class="input-group">
+                            <label>Rock (Coarse Agg.)</label>
+                            <input type="number" id="mix_rock" value="1083.0" step="0.1" class="mix-input">
+                        </div>
+                        <div class="input-group col-span-2 border-t pt-2 mt-1">
+                            <label>Comp. Strength, f'<sub>c</sub> (MPa)</label>
+                            <input type="number" id="in_fc" value="32.6" step="0.1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Material Properties -->
+                <div>
+                    <h3 class="section-title">2. Material Properties</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="input-group">
+                            <label>Sand SG</label>
+                            <input type="number" id="sg_sand" value="2.60" step="0.01" class="mix-input">
+                        </div>
+                        <div class="input-group">
+                            <label>Rock SG</label>
+                            <input type="number" id="sg_rock" value="2.65" step="0.01" class="mix-input">
+                        </div>
+                        <div class="input-group">
+                            <label>FA %SO<sub>3f</sub> (0-5.0)</label>
+                            <input type="number" id="in_so3" value="0" step="0.01">
+                        </div>
+                        <div class="input-group">
+                            <label>Rock Abs, &varphi;<sub>R</sub> (%)</label>
+                            <input type="number" id="in_phiR" value="0.37" step="0.01">
+                        </div>
+                    </div>
+                    
+                    <div class="input-group mt-3 bg-gray-50 p-3 rounded border border-gray-200">
+                        <label class="text-emerald-800 font-semibold">Coarse Agg. Size (ASTM C33)</label>
+                        <select id="in_sr_mode" class="mb-2 border-emerald-300">
+                            <option value="manual">ระบุค่า S&sub;R ด้วยตนเอง (Manual Input)</option>
+                            <option value="67" selected>หิน 3/4 นิ้ว (ASTM No. 67) [MAS 3/4" | โครงสร้างทั่วไป]</option>
+                            <option value="57">หิน 1 นิ้ว (ASTM No. 57) [MAS 1" | ฐานราก/ถนน]</option>
+                            <option value="467">หิน 1.5 นิ้ว (ASTM No. 467) [MAS 1.5" | Mass Concrete]</option>
+                            <option value="8">หินเกล็ด 3/8 นิ้ว (ASTM No. 8) [MAS 3/8" | Topping/Precast]</option>
+                            <option value="4">ASTM No. 4 (MAS 1.5" to 3/4")</option>
+                            <option value="5">ASTM No. 5 (MAS 1" to 1/2")</option>
+                            <option value="56">ASTM No. 56 (MAS 1" to 3/8")</option>
+                            <option value="6">ASTM No. 6 (MAS 3/4" to 3/8")</option>
+                            <option value="7">ASTM No. 7 (MAS 1/2" to No. 4)</option>
+                        </select>
+                        <div class="flex items-center gap-2">
+                            <label class="mb-0 flex-1 whitespace-nowrap text-xs">S<sub>R</sub> (cm&sup2;/kg):</label>
+                            <input type="number" id="in_sr_manual" value="2249" step="1" class="w-full font-bold text-emerald-700 bg-white" disabled>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Environment -->
+                <div>
+                    <h3 class="section-title">3. Environment & Geometry</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="input-group">
+                            <label>Env Temp, T (&deg;C)</label>
+                            <input type="number" id="in_T" value="28" step="0.1">
+                        </div>
+                        <div class="input-group">
+                            <label>Humidity, RH (%)</label>
+                            <input type="number" id="in_RH" value="50" step="1">
+                        </div>
+                        <div class="input-group col-span-2">
+                            <label>Volume/Surface, V/S (mm)</label>
+                            <input type="number" id="in_VS" value="16.57" step="0.01">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Curing -->
+                <div>
+                    <h3 class="section-title">4. Curing & Target Analysis</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="input-group col-span-2">
+                            <label>Curing Method</label>
+                            <select id="in_cureMethod">
+                                <option value="water">Moist Curing (บ่มน้ำ)</option>
+                                <option value="burlap">Wet Burlap (บ่มกระสอบเปียก)</option>
+                                <option value="plastic">Plastic Seal (บ่มพลาสติก)</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Drying Age, t<sub>0</sub> (days)</label>
+                            <input type="number" id="in_t0" value="7">
+                        </div>
+                        <div class="input-group">
+                            <label class="text-blue-700 font-bold">Target Age (days)</label>
+                            <input type="number" id="in_target_age" value="90" class="border-blue-300 bg-blue-50">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="pt-2 border-t flex flex-col gap-3">
+                    <button type="button" id="btnCalculate" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors">Calculate DPT Shrinkage</button>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" id="btnEx1" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-2 rounded-lg border border-gray-300 transition-colors text-xs text-center flex items-center justify-center gap-1">
+                            Ex.1 (Type 1)
+                        </button>
+                        <button type="button" id="btnEx2" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-2 rounded-lg border border-gray-300 transition-colors text-xs text-center flex items-center justify-center gap-1">
+                            Ex.2 (30% FA)
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right Panel: Outputs -->
+        <div class="lg:col-span-8 space-y-4">
+            
+            <div id="error_box" class="bg-red-50 border-l-4 border-red-500 p-4 rounded shadow-sm hidden">
+                <div class="flex">
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800">Calculation Error</h3>
+                        <p id="error_msg" class="text-sm text-red-700 mt-1"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Derived Mix Parameters (V2 Feature) -->
+            <div class="bg-blue-50/50 rounded-xl shadow-sm border border-blue-100 p-4">
+                <h2 class="text-xs font-bold text-blue-800 uppercase tracking-wider mb-3">Derived Standard Parameters</h2>
+                <div class="grid grid-cols-4 gap-3 text-center">
+                    <div class="bg-white p-2 rounded border border-blue-100 shadow-sm">
+                        <div class="text-[10px] text-gray-500">w/b ratio</div>
+                        <div class="text-lg font-bold text-gray-800" id="disp_wb">-</div>
+                    </div>
+                    <div class="bg-white p-2 rounded border border-blue-100 shadow-sm">
+                        <div class="text-[10px] text-gray-500">Agg. Vol (n)</div>
+                        <div class="text-lg font-bold text-gray-800" id="disp_n">-</div>
+                    </div>
+                    <div class="bg-white p-2 rounded border border-blue-100 shadow-sm">
+                        <div class="text-[10px] text-gray-500">Fly Ash (r<sub>FA</sub>)</div>
+                        <div class="text-lg font-bold text-gray-800" id="disp_rfa">-</div>
+                    </div>
+                    <div class="bg-white p-2 rounded border border-blue-100 shadow-sm">
+                        <div class="text-[10px] text-gray-500">LS Pwd (r<sub>LP</sub>)</div>
+                        <div class="text-lg font-bold text-gray-800" id="disp_rlp">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trace Parameters -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="bg-gray-50 p-3 rounded text-center border border-gray-200 shadow-sm">
+                        <div class="text-[11px] text-gray-500 font-medium tracking-wide">&epsilon;<sub>asm</sub> (10<sup>-6</sup>)</div>
+                        <div class="text-xl font-bold text-gray-800 mt-1" id="out_easm">-</div>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded text-center border border-gray-200 shadow-sm">
+                        <div class="text-[11px] text-gray-500 font-medium tracking-wide">&epsilon;<sub>dsm</sub> (10<sup>-6</sup>)</div>
+                        <div class="text-xl font-bold text-gray-800 mt-1" id="out_edsm">-</div>
+                    </div>
+                    <div class="bg-emerald-50 p-3 rounded text-center border border-emerald-200 shadow-sm">
+                        <div class="text-[11px] text-emerald-700 font-bold tracking-wide">&eta; (Auto)</div>
+                        <div class="text-xl font-bold text-emerald-800 mt-1" id="out_eta">-</div>
+                    </div>
+                    <div class="bg-blue-50 p-3 rounded text-center border border-blue-200 shadow-sm">
+                        <div class="text-[11px] text-blue-700 font-bold tracking-wide">&lambda; (Auto)</div>
+                        <div class="text-xl font-bold text-blue-800 mt-1" id="out_lambda">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3 h-[320px]" id="chart_main_log"></div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3 h-[320px]" id="chart_main_linear"></div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 overflow-hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-3 mb-4 gap-3">
+                    <h2 class="text-lg font-bold text-gray-800">Total Shrinkage Evolution</h2>
+                    <div class="flex items-center gap-2">
+                        <div class="text-sm font-semibold text-emerald-800 bg-emerald-100 px-3 py-1.5 rounded border border-emerald-200 shadow-sm">
+                            Total @ 90 Days: <span id="out_target_total" class="font-bold text-lg">-</span> <span class="text-xs font-normal">10<sup>-6</sup></span>
+                        </div>
+                        <button id="btnExportCSV" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded shadow transition flex items-center gap-2 text-sm font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Export CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto max-h-[350px] custom-scrollbar">
+                    <table class="w-full text-sm text-center whitespace-nowrap">
+                        <thead class="text-[11px] text-gray-700 bg-gray-100 sticky top-0 shadow-sm z-10">
+                            <tr>
+                                <th class="px-4 py-3 border-r font-bold">Abs. Age (t)</th>
+                                <th class="px-4 py-3 border-r font-bold">&epsilon;<sub>as</sub>(t)</th>
+                                <th class="px-4 py-3 border-r font-bold">&epsilon;<sub>as</sub>(t<sub>0</sub>)</th>
+                                <th class="px-4 py-3 border-r text-red-600 font-bold">&epsilon;<sub>ds</sub>(t, t<sub>0</sub>)</th>
+                                <th class="px-4 py-3 font-bold text-emerald-700 bg-emerald-50">&epsilon;<sub>TS</sub>(t, t<sub>0</sub>)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="result_tbody" class="divide-y divide-gray-200">
+                            <tr><td colspan="5" class="px-4 py-4 text-center text-gray-500">Click Calculate to view results</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const MICRO_STRAIN = 1e6;
+        let currentCalcData = []; 
+        let currentParamCSV = ""; 
+        
+        // Calculated internal variables
+        let calc_wb = 0, calc_n = 0, calc_rFA = 0, calc_rLP = 0, calc_sr = 2249;
+
+        // Auto-set SO3 for FA
+        document.getElementById('mix_fa').addEventListener('input', function() {
+            let faValue = parseFloat(this.value) || 0;
+            let so3Input = document.getElementById('in_so3');
+            if (faValue > 0 && (parseFloat(so3Input.value) === 0 || so3Input.value === "")) {
+                so3Input.value = 3.03;
+            } else if (faValue === 0) {
+                so3Input.value = 0;
+            }
+        });
+
+        // ASTM C33 Base SR values (calculated at SG = 2.67)
+        const astm_sr_base = {
+            "467": 1620,
+            "4": 1090,
+            "5": 1650,
+            "56": 1720,
+            "57": 1980,
+            "6": 2130,
+            "67": 2260,
+            "7": 2910,
+            "8": 4100
+        };
+
+        // Live Update of Derived Mix Parameters
+        function updateDerivedParams() {
+            let c = parseFloat(document.getElementById('mix_c').value) || 0;
+            let w = parseFloat(document.getElementById('mix_w').value) || 0;
+            let fa = parseFloat(document.getElementById('mix_fa').value) || 0;
+            let lp = parseFloat(document.getElementById('mix_lp').value) || 0;
+            let sand = parseFloat(document.getElementById('mix_sand').value) || 0;
+            let rock = parseFloat(document.getElementById('mix_rock').value) || 0;
+            let sg_s = parseFloat(document.getElementById('sg_sand').value) || 2.65;
+            let sg_r = parseFloat(document.getElementById('sg_rock').value) || 2.67;
+            
+            // Binder
+            let b = c + fa + lp;
+            if(b > 0) {
+                calc_wb = w / b;
+                calc_rFA = fa / b;
+                calc_rLP = lp / b;
+            } else {
+                calc_wb = 0; calc_rFA = 0; calc_rLP = 0;
+            }
+
+            // Aggregate Volume (n)
+            let v_sand = (sg_s > 0) ? (sand / sg_s) : 0;
+            let v_rock = (sg_r > 0) ? (rock / sg_r) : 0;
+            calc_n = (v_sand + v_rock) / 1000;
+
+            // Update UI Badges
+            document.getElementById('disp_wb').innerText = calc_wb.toFixed(3);
+            document.getElementById('disp_n').innerText = calc_n.toFixed(3);
+            document.getElementById('disp_rfa').innerText = calc_rFA.toFixed(2);
+            document.getElementById('disp_rlp').innerText = calc_rLP.toFixed(2);
+            
+            updateSR();
+        }
+
+        // Logic for SR Dropdown
+        function updateSR() {
+            let mode = document.getElementById('in_sr_mode').value;
+            let manualInput = document.getElementById('in_sr_manual');
+            let sg_r = parseFloat(document.getElementById('sg_rock').value) || 2.67;
+
+            if (mode === 'manual') {
+                manualInput.disabled = false;
+                manualInput.classList.remove('bg-gray-100', 'text-gray-500');
+                calc_sr = parseFloat(manualInput.value) || 2249;
+            } else {
+                manualInput.disabled = true;
+                manualInput.classList.add('bg-gray-100', 'text-gray-500');
+                
+                // Calculate dynamic SR based on ASTM C33 base and actual Rock SG
+                let base_sr = astm_sr_base[mode];
+                calc_sr = base_sr * (2.67 / sg_r); 
+                manualInput.value = Math.round(calc_sr); // Update UI to show the calculated value
+            }
+        }
+
+        // Attach Event Listeners to inputs for real-time updates
+        document.querySelectorAll('.mix-input, #in_sr_mode, #in_sr_manual').forEach(el => {
+            el.addEventListener('input', updateDerivedParams);
+            el.addEventListener('change', updateDerivedParams);
+        });
+
+        // Examples (Reverse engineered to kg/m³ based on V1 examples and SG changes)
+        document.getElementById('btnEx1').addEventListener('click', () => {
+            document.getElementById('mix_c').value = 327.3;
+            document.getElementById('mix_w').value = 180;
+            document.getElementById('mix_fa').value = 0;
+            document.getElementById('mix_lp').value = 0;
+            document.getElementById('mix_sand').value = 703.0; // Adjusted for SG 2.60
+            document.getElementById('mix_rock').value = 1074.8; // Adjusted for SG 2.65
+            document.getElementById('sg_sand').value = "2.60";
+            document.getElementById('sg_rock').value = "2.65";
+            
+            document.getElementById('in_fc').value = 32.6;
+            document.getElementById('in_T').value = 28;
+            document.getElementById('in_RH').value = 50;
+            document.getElementById('in_VS').value = 16.57;
+            document.getElementById('in_phiR').value = 0.37;
+            document.getElementById('in_so3').value = 0;
+            
+            document.getElementById('in_sr_mode').value = '67';
+            document.getElementById('in_cureMethod').value = 'water';
+            document.getElementById('in_t0').value = 7;
+            document.getElementById('in_target_age').value = 90;
+            
+            updateDerivedParams();
+            document.getElementById('btnCalculate').click();
+        });
+
+        document.getElementById('btnEx2').addEventListener('click', () => {
+            document.getElementById('mix_c').value = 229.1;
+            document.getElementById('mix_w').value = 180;
+            document.getElementById('mix_fa').value = 98.2;
+            document.getElementById('mix_lp').value = 0;
+            document.getElementById('mix_sand').value = 703.0; // Adjusted for SG 2.60
+            document.getElementById('mix_rock').value = 1074.8; // Adjusted for SG 2.65
+            document.getElementById('sg_sand').value = "2.60";
+            document.getElementById('sg_rock').value = "2.65";
+            
+            document.getElementById('in_fc').value = 23.2; 
+            document.getElementById('in_T').value = 28;
+            document.getElementById('in_RH').value = 50;
+            document.getElementById('in_VS').value = 16.57;
+            document.getElementById('in_phiR').value = 0.37;
+            document.getElementById('in_so3').value = 3.03;
+            
+            document.getElementById('in_sr_mode').value = '67';
+            document.getElementById('in_cureMethod').value = 'water';
+            document.getElementById('in_t0').value = 7;
+            document.getElementById('in_target_age').value = 90;
+            
+            updateDerivedParams();
+            document.getElementById('btnCalculate').click();
+        });
+
+        document.getElementById('btnCalculate').addEventListener('click', () => {
+            try {
+                // Ensure derived params are up to date
+                updateDerivedParams();
+                
+                let wb = calc_wb;
+                let n = calc_n;
+                let rFA = calc_rFA;
+                let rLP = calc_rLP;
+                let SR = calc_sr;
+
+                // Direct Inputs
+                let fc = parseFloat(document.getElementById('in_fc').value);
+                let T = parseFloat(document.getElementById('in_T').value);
+                let RH = parseFloat(document.getElementById('in_RH').value);
+                let VS = parseFloat(document.getElementById('in_VS').value);
+                let phi_R = parseFloat(document.getElementById('in_phiR').value);
+                let so3f = parseFloat(document.getElementById('in_so3').value);
+                let cureMode = document.getElementById('in_cureMethod').value;
+                let t0 = parseFloat(document.getElementById('in_t0').value);
+                let targetAge = parseFloat(document.getElementById('in_target_age').value);
+
+                // Validation
+                if(wb <= 0 || n <= 0 || fc <= 0 || T <= 0 || VS <= 0 || t0 < 0 || targetAge <= 0) {
+                    throw new Error("Inputs resulting in Zero or Negative derived values. Please check Mix Proportions.");
+                }
+
+                // --- Autogenous Shrinkage (6.2) ---
+                let gamma_T = 0.61 * Math.pow(T, 0.15);
+                let chi = (rFA === 0) ? 1.0 : (1 + 0.46 * Math.exp(-3.55 * so3f));
+                let exp_fa_part = 1 / (-1.13 + 0.49 * Math.pow(wb, 3.10));
+                let gamma_FA = chi * Math.exp(exp_fa_part * rFA);
+                let gamma_LP = 1 / (1 + 1.08 * Math.pow(rLP, 1.23));
+                let gamma_n = 165 * Math.pow(0.00053, n);
+                
+                let eps_R = -52 + 699 * phi_R - 86 * Math.pow(phi_R, 2);
+                let gamma_phiR = 1.286 / Math.pow(1 + Math.exp(3.972 - 0.0054 * eps_R), 1/13);
+                let gamma_SR = 1.338 * Math.exp(-340 / (0.58 * SR));
+
+                let eps_asm = 258 * (-Math.log(wb)) * gamma_T * gamma_FA * gamma_LP * gamma_n * gamma_phiR * gamma_SR;
+                let eta = 0.04 * Math.pow(wb, -1.62);
+                let lambda = 0.22 * Math.pow(8.96, wb);
+
+                // --- Drying Shrinkage (6.3) ---
+                let K_T = 0.88 * Math.pow(1.049, T) * Math.pow(T, -0.36);
+                let K_RH = 1.143 * (1 - Math.pow(RH/100, 3));
+                
+                let delta = (rFA === 0) ? 1.0 : (1 + 0.17 * Math.exp(-3.07 * so3f));
+                let K_FA = delta * Math.pow(1 - 0.07 * rFA, 1 / 0.20);
+                
+                let K_LP = 1 / (1 + 1.08 * Math.pow(rLP, 1.23));
+                let K_n = 6.644 * Math.pow(0.061, n);
+
+                let alpha_c, psi_c;
+                if(cureMode === 'water') { alpha_c = 0.014; psi_c = 0.912; }
+                else if(cureMode === 'burlap') { alpha_c = 0.0012; psi_c = 1.738; }
+                else { alpha_c = 0.0003; psi_c = 2.100; }
+                let K_CU = 1 / (0.917 + alpha_c * Math.pow(t0, psi_c));
+
+                let K_phiR = 1.422 / Math.pow(1 + Math.exp(10.676 - 0.018 * eps_R), 1/21.287);
+                let K_SR = 1.412 * Math.exp(-422 / (0.58 * SR));
+
+                let base_edsm = (24.57 + 717 * Math.pow(wb, 6.93)) / (0.054 + Math.pow(wb, 6.93));
+                let eps_dsm = base_edsm * K_T * K_RH * K_FA * K_LP * K_CU * K_n * K_phiR * K_SR;
+
+                let B = Math.pow(9.21, 1/fc);
+                let A = 10 * Math.exp(16/fc);
+                let G = 0.24 * Math.pow(VS, 0.51);
+                let N = 2.58 * Math.exp(-1.44 * n);
+                let F = (rFA === 0) ? 1.0 : Math.pow(0.93 * Math.pow(rFA, 0.94), rFA);
+
+                // Update Trace UI
+                document.getElementById('out_easm').innerText = eps_asm.toFixed(0);
+                document.getElementById('out_edsm').innerText = eps_dsm.toFixed(0);
+                document.getElementById('out_eta').innerText = eta.toFixed(3);
+                document.getElementById('out_lambda').innerText = lambda.toFixed(3);
+
+                // Build CSV Parameter Header (V2 Data)
+                let cureModeText = document.getElementById('in_cureMethod').options[document.getElementById('in_cureMethod').selectedIndex].text;
+                currentParamCSV = `"--- DPT 1332-25 (V2.0) MIX DESIGN & PARAMETERS ---"\n`;
+                currentParamCSV += `"Cement (kg)",${document.getElementById('mix_c').value}\n"Water (kg)",${document.getElementById('mix_w').value}\n`;
+                currentParamCSV += `"Fly Ash (kg)",${document.getElementById('mix_fa').value}\n"Limestone Pwd (kg)",${document.getElementById('mix_lp').value}\n`;
+                currentParamCSV += `"Sand (kg)",${document.getElementById('mix_sand').value}\n"Rock (kg)",${document.getElementById('mix_rock').value}\n`;
+                currentParamCSV += `"Sand SG",${document.getElementById('sg_sand').value}\n"Rock SG",${document.getElementById('sg_rock').value}\n\n`;
+                
+                currentParamCSV += `"--- DERIVED & STANDARD PARAMETERS ---"\n`;
+                currentParamCSV += `"w/b ratio",${wb.toFixed(4)}\n"Agg. Volume (n)",${n.toFixed(4)}\n`;
+                currentParamCSV += `"Fly Ash ratio (r_FA)",${rFA.toFixed(4)}\n"FA %SO3f",${so3f}\n"Limestone ratio (r_LP)",${rLP.toFixed(4)}\n`;
+                currentParamCSV += `"Absorption phi_R (%)",${phi_R}\n"Surface Area SR (cm2/kg)",${SR.toFixed(1)}\n`;
+                currentParamCSV += `"Comp. Strength f'c (MPa)",${fc}\n"Env Temp T (C)",${T}\n"Humidity RH (%)",${RH}\n"Volume/Surface V/S (mm)",${VS}\n`;
+                currentParamCSV += `"Curing Method","${cureModeText}"\n"Drying Age t0 (days)",${t0}\n"Target Age (days)",${targetAge}\n\n`;
+                
+                currentParamCSV += `"--- CALCULATED TRACE PARAMETERS ---"\n`;
+                currentParamCSV += `"eps_asm (10^-6)",${eps_asm.toFixed(2)}\n"eps_dsm (10^-6)",${eps_dsm.toFixed(2)}\n`;
+                currentParamCSV += `"eta",${eta.toFixed(4)}\n"lambda",${lambda.toFixed(4)}\n\n`;
+                currentParamCSV += `"--- SHRINKAGE EVOLUTION DATA ---"\n`;
+
+                let t_arr = [1, 3, 7, 14, 28, 60, 90, 180, 240, 365, 730, 1000];
+                if (!t_arr.includes(t0) && t0 > 0) t_arr.push(t0);
+                if (!t_arr.includes(targetAge)) t_arr.push(targetAge); 
+                t_arr.sort((a,b) => a-b);
+
+                let plot_t = [], plot_as = [], plot_ds = [], plot_ts = [];
+                let tbody = document.getElementById('result_tbody');
+                tbody.innerHTML = '';
+                currentCalcData = []; 
+
+                let eps_as_t0 = eps_asm * (1 - Math.exp(-eta * Math.pow(t0, lambda)));
+
+                t_arr.forEach((t, i) => {
+                    let eps_as = eps_asm * (1 - Math.exp(-eta * Math.pow(t, lambda)));
+                    let eps_ds = 0;
+                    if (t > t0) {
+                        let beta_ds = ((t - t0) * B) / ((t - t0) + A * G * N * F);
+                        eps_ds = eps_dsm * beta_ds;
+                    }
+
+                    let eps_ts = 0;
+                    if(cureMode === 'plastic') {
+                        eps_ts = eps_as + eps_ds;
+                    } else {
+                        if (t >= t0) eps_ts = (eps_as - eps_as_t0) + eps_ds;
+                        else eps_ts = 0; 
+                    }
+
+                    plot_t.push(t);
+                    plot_as.push(eps_as);
+                    plot_ds.push(eps_ds);
+                    plot_ts.push(eps_ts);
+
+                    currentCalcData.push({ t: t, eps_as: eps_as, eps_as_t0: (t>=t0 ? eps_as_t0 : 0), eps_ds: eps_ds, eps_ts: eps_ts });
+
+                    if (t === 90) document.getElementById('out_target_total').innerText = eps_ts.toFixed(0);
+
+                    let tr = document.createElement('tr');
+                    if (t === targetAge) {
+                        tr.className = "bg-blue-100 font-bold border-y-2 border-blue-300";
+                    } else if (t === 90) {
+                        tr.className = "bg-emerald-100 font-bold border-y-2 border-emerald-300";
+                    } else if (t === t0) {
+                        tr.className = "bg-gray-200 font-semibold";
+                    } else {
+                        tr.className = (i%2===1 ? "bg-white" : "bg-gray-50");
+                    }
+
+                    tr.innerHTML = `
+                        <td class="px-4 py-2">${t} ${t === targetAge ? '<span class="text-[10px] text-blue-600 ml-1">(Target)</span>' : ''}</td>
+                        <td class="px-4 py-2 text-gray-600">${eps_as.toFixed(0)}</td>
+                        <td class="px-4 py-2 text-gray-400">${(t>=t0 ? eps_as_t0 : 0).toFixed(0)}</td>
+                        <td class="px-4 py-2 text-red-600">${eps_ds.toFixed(0)}</td>
+                        <td class="px-4 py-2 text-emerald-800">${eps_ts.toFixed(0)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                let trace_ts = { x: plot_t, y: plot_ts, mode: 'lines+markers', name: 'Total', line: {color: '#047857', width: 3} };
+                let trace_ds = { x: plot_t, y: plot_ds, mode: 'lines', name: 'Drying', line: {color: '#dc2626', dash: 'dash'} };
+                let trace_as = { x: plot_t, y: plot_as, mode: 'lines', name: 'Autogenous', line: {color: '#2563eb', dash: 'dot'} };
+                
+                let layout_base = {
+                    margin: { t: 40, b: 40, l: 50, r: 20 }, font: {family: 'Inter, sans-serif', size: 11},
+                    legend: { x: 0.05, y: 0.95, bgcolor: 'rgba(255,255,255,0.8)' }
+                };
+
+                Plotly.newPlot('chart_main_log', [trace_ts, trace_ds, trace_as], {
+                    ...layout_base,
+                    title: {text: 'Shrinkage Strain vs Age [Log Scale]', font: {weight: 'bold'}},
+                    xaxis: { title: 'Time (days)', type: 'log' }, 
+                    yaxis: { title: 'Strain (10⁻⁶)' }
+                }, {responsive: true});
+
+                let lin_t = [], lin_ts = [], lin_ds = [], lin_as = [];
+                for(let i=0; i<plot_t.length; i++) {
+                    if(plot_t[i] <= 365) {
+                        lin_t.push(plot_t[i]); lin_ts.push(plot_ts[i]); lin_ds.push(plot_ds[i]); lin_as.push(plot_as[i]);
+                    }
+                }
+                Plotly.newPlot('chart_main_linear', [
+                    { x: lin_t, y: lin_ts, mode: 'lines', name: 'Total', line: {color: '#047857', width: 3} },
+                    { x: lin_t, y: lin_ds, mode: 'lines', name: 'Drying', line: {color: '#dc2626', dash: 'dash'} },
+                    { x: lin_t, y: lin_as, mode: 'lines', name: 'Autogenous', line: {color: '#2563eb', dash: 'dot'} }
+                ], {
+                    ...layout_base,
+                    title: {text: 'Shrinkage Strain (0-365 days) [Linear]', font: {weight: 'bold'}},
+                    xaxis: { title: 'Time (days)', type: 'linear' }, 
+                    yaxis: { title: 'Strain (10⁻⁶)' }
+                }, {responsive: true});
+
+                document.getElementById('error_box').classList.add('hidden');
+            } catch (e) {
+                document.getElementById('error_box').classList.remove('hidden');
+                document.getElementById('error_msg').innerText = e.message || "Error calculating values. Check inputs.";
+                console.error(e);
+            }
+        });
+
+        document.getElementById('btnExportCSV').addEventListener('click', () => {
+            if (currentCalcData.length === 0) {
+                alert("Please calculate first before exporting.");
+                return;
+            }
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+            csvContent += currentParamCSV;
+            csvContent += "Absolute Age (days),Autogenous Shrinkage eps_as(t),Autogenous at t0 eps_as(t0),Drying Shrinkage eps_ds(t t0),Total Shrinkage eps_TS(t t0)\n";
+            currentCalcData.forEach(row => {
+                let r = `${row.t},${row.eps_as.toFixed(2)},${row.eps_as_t0.toFixed(2)},${row.eps_ds.toFixed(2)},${row.eps_ts.toFixed(2)}`;
+                csvContent += r + "\n";
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "DPT1332_Shrinkage_V2_Results.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // Initialize App
+        window.onload = () => {
+            updateDerivedParams();
+            document.getElementById('btnEx1').click();
+        };
+    </script>
+</body>
+</html>
