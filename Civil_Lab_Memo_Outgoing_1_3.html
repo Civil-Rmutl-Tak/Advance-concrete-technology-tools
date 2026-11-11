@@ -1,0 +1,2711 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดทำบันทึกข้อความและหนังสือนำส่งผลทดสอบวัสดุ - มทร.ล้านนา ตาก</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Sarabun:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        [v-cloak] { display: none !important; }
+
+        :root {
+            --primary: #1e3a8a;
+            --secondary: #047857;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #cbd5e1;
+            --page-width: 210mm;
+            --page-height: 297mm;
+        }
+
+        body { 
+            font-family: 'Noto Sans Thai', sans-serif; 
+            background-color: var(--bg); 
+            color: var(--text); 
+            margin: 0; 
+        }
+        
+        .header-bg { background: linear-gradient(135deg, #1e3a8a, #0284c7); }
+        .nav-container { background: white; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 30; }
+        .tab-btn { padding: 0.65rem 1.15rem; font-size: 0.875rem; color: #475569; border-radius: 0.5rem; margin-right: 0.25rem; cursor: pointer; transition: all 0.2s; border: none; background: transparent; font-weight: 600; }
+        .tab-btn:hover { background-color: #f1f5f9; color: #0284c7; }
+        .tab-btn.active { background-color: #e0f2fe; color: #0369a1; font-weight: 700; }
+        
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 1.25rem; }
+        .card-title { font-size: 1.125rem; font-weight: 700; margin-bottom: 1rem; color: #0f172a; display: flex; align-items: center; }
+        .form-label { display: block; font-size: 0.8125rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem; }
+        .form-input { width: 100%; border: 1px solid #cbd5df; border-radius: 0.4375rem; padding: 0.5rem 0.625rem; font-size: 0.875rem; background: white; transition: all 0.2s; }
+        .form-input:focus { outline: none; border-color: #0284c7; box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2); }
+        
+        .btn { border: none; border-radius: 0.4375rem; padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 700; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; }
+        .btn-primary { background: #0284c7; color: white; }
+        .btn-primary:hover { background: #0369a1; }
+        .btn-secondary { background: #059669; color: white; }
+        .btn-secondary:hover { background: #047857; }
+        .btn-outline { background: white; border: 1px solid #cbd5e1; color: #334155; }
+        .btn-outline:hover { background: #f8fafc; border-color: #94a3b8; }
+        .btn-danger { background: #fee2e2; border: 1px solid #fca5a5; color: #b91c1c; }
+        .btn-danger:hover { background: #fecaca; }
+
+        /* การจัดหน้ากระดาษบันทึกข้อความราชการ */
+        .preview-area { background: #475569; padding: 2rem 1rem; min-height: 100vh; display: flex; flex-direction: column; align-items: center; gap: 2rem; }
+        
+        .paper-memo {
+            width: var(--page-width);
+            min-height: var(--page-height);
+            max-height: var(--page-height);
+            padding: 12mm 12.7mm 15mm 28mm;
+            background: #ffffff !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+            font-family: 'Sarabun', 'TH Sarabun New', sans-serif;
+            color: #000000;
+            box-sizing: border-box;
+            position: relative;
+            line-height: 1.08;
+            font-size: 16pt;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .paper-memo * {
+            font-family: 'Sarabun', 'TH Sarabun New', sans-serif;
+            color: #000000;
+            box-sizing: border-box;
+        }
+
+        /* พรีวิวหนังสือนำส่งภายนอกใน Modal */
+        .paper-cover-mini {
+            width: 100%;
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            font-family: 'Sarabun', 'TH Sarabun New', sans-serif;
+            color: #000000;
+            font-size: 14pt;
+            line-height: 1.15;
+        }
+        .paper-cover-mini * {
+            font-family: 'Sarabun', 'TH Sarabun New', sans-serif;
+            color: #000000;
+        }
+
+        .memo-top-table { width: 100%; border-collapse: collapse; margin-bottom: 0; border: none; }
+        .memo-top-table td { border: none !important; padding: 0; vertical-align: bottom; }
+        
+        .garuda-memo-img {
+            height: 76pt;
+            width: auto;
+            object-fit: contain;
+            display: block;
+        }
+
+        .memo-title-text {
+            font-size: 29pt;
+            font-weight: bold;
+            line-height: 1.0;
+            text-align: center;
+            letter-spacing: -0.5px;
+            padding-bottom: 0;
+            margin-bottom: 0;
+            color: #000000;
+            display: block;
+        }
+
+        .memo-meta-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 0; 
+            margin-bottom: 1.5mm; 
+            font-size: 16pt; 
+        }
+        .memo-meta-table tr { height: 23pt; }
+        .memo-meta-table td { 
+            border: none !important; 
+            padding: 0 !important; 
+            vertical-align: bottom !important; 
+            line-height: 1.18 !important; 
+        }
+        
+        .memo-dotted-cell {
+            border-bottom: 1px dotted #000000 !important;
+            padding-bottom: 1px !important;
+            vertical-align: bottom !important;
+            line-height: 1.18 !important;
+        }
+
+        .memo-p { 
+            margin: 0 0 1.8mm 0; 
+            text-indent: 1.5cm;
+            text-align: justify; 
+            text-justify: inter-cluster; 
+            line-height: 1.08; 
+        }
+
+        .memo-items-list-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1mm 0 1.8mm 0;
+            font-size: 16pt;
+            line-height: 1.08;
+        }
+        .memo-items-list-table td {
+            border: none !important;
+            padding: 0.35mm 0;
+            vertical-align: top;
+        }
+
+        .memo-sign-section {
+            width: 100%;
+            margin-top: 6mm;
+            margin-bottom: 2mm;
+        }
+        .memo-sign-table { width: 100%; border-collapse: collapse; border: none; }
+        .memo-sign-table td { border: none !important; padding: 0; vertical-align: top; }
+
+        .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 60; display: flex; flex-direction: column; gap: 0.5rem; }
+        .toast { background: #0f172a; color: white; padding: 0.75rem 1.25rem; border-radius: 0.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); font-size: 0.875rem; animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .lightbox-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .lightbox-img {
+            max-width: 90%; max-height: 90vh; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="app" v-cloak class="flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="header-bg text-white px-6 py-3.5 flex justify-between items-center shadow-md">
+            <div class="flex items-center gap-3">
+                <div class="bg-white/20 p-2 rounded-lg text-white"><i class="fa-solid fa-file-signature text-xl"></i></div>
+                <div>
+                    <h1 class="text-lg font-bold m-0 leading-tight">ระบบจัดทำบันทึกข้อความและหนังสือนำส่งผลทดสอบวัสดุ</h1>
+                    <small class="text-sky-200">สาขาวิศวกรรมโยธาและสิ่งแวดล้อม คณะวิศวกรรมศาสตร์ มทร.ล้านนา ตาก</small>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider bg-emerald-500 text-white shadow-sm">
+                    {{ memoItems.length }} ฉบับแนบ
+                </span>
+                <span class="text-xs bg-white/10 px-3 py-1 rounded border border-white/20 font-mono text-white">
+                    {{ toThaiNumerals(formatThaiDate(memo.date, true)) }}
+                </span>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="nav-container px-6 py-2 flex justify-between items-center shadow-sm">
+            <div class="flex gap-1 overflow-x-auto">
+                <button @click="activeTab = 'dashboard'" :class="['tab-btn', activeTab === 'dashboard' ? 'active' : '']">
+                    <i class="fa-solid fa-chart-pie mr-1.5 text-blue-600"></i> Dashboard
+                </button>
+                <button @click="activeTab = 'memoInfo'" :class="['tab-btn', activeTab === 'memoInfo' ? 'active' : '']">
+                    <i class="fa-solid fa-pen-to-square mr-1.5 text-amber-600"></i> 1) ตั้งค่าหัวบันทึก & ผู้ลงนาม
+                </button>
+                <button @click="activeTab = 'items'" :class="['tab-btn', activeTab === 'items' ? 'active' : '']">
+                    <i class="fa-solid fa-list-check mr-1.5 text-emerald-600"></i> 2) จัดการรายการ & หนังสือนำส่ง ({{ memoItems.length }} ฉบับ)
+                </button>
+                <button @click="activeTab = 'preview'" :class="['tab-btn', activeTab === 'preview' ? 'active' : '']">
+                    <i class="fa-solid fa-file-lines mr-1.5 text-indigo-600"></i> 3) พรีวิวบันทึกข้อความ ({{ totalPages }} หน้า)
+                </button>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <button @click="showApiKeyModal = true" class="btn btn-outline text-xs py-1.5 px-2.5" title="ตั้งค่า AI Model & API Key">
+                    <i class="fa-solid fa-robot text-indigo-600 mr-1"></i> AI: {{ activeAiModelLabel }}
+                </button>
+                <button @click="exportMemoJson" class="btn btn-outline text-xs py-1.5 px-2.5" title="ส่งออกไฟล์สำรอง">
+                    <i class="fa-solid fa-download mr-1"></i> Export JSON
+                </button>
+                <label class="btn btn-outline text-xs py-1.5 px-2.5 cursor-pointer" title="นำเข้าไฟล์สำรอง">
+                    <i class="fa-solid fa-upload mr-1"></i> Import JSON
+                    <input type="file" class="hidden" accept=".json" @change="importMemoJson">
+                </label>
+            </div>
+        </nav>
+
+        <main class="w-full flex-grow">
+            <!-- TAB 0: DASHBOARD -->
+            <div v-show="activeTab === 'dashboard'" class="max-w-6xl mx-auto p-6">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800 m-0">สถานะบันทึกข้อความและหนังสือนำส่งผลทดสอบวัสดุ</h2>
+                        <div class="text-sm text-slate-500">สรุปข้อมูลรอบการเสนอลงนามบันทึกข้อความภายใน และออกหนังสือนำส่งภายนอกรายบริษัท</div>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button @click="loadExactSampleData" class="btn btn-outline text-xs">
+                            <i class="fa-solid fa-rotate-left mr-1 text-blue-600"></i> ตัวอย่าง 8 ฉบับ (1 หน้า)
+                        </button>
+                        <button @click="loadSample10Data" class="btn btn-outline text-xs">
+                            <i class="fa-solid fa-file-circle-check mr-1 text-teal-600"></i> ตัวอย่าง 10 ฉบับ (1 หน้า)
+                        </button>
+                        <button @click="loadSample20Data" class="btn btn-outline text-xs">
+                            <i class="fa-solid fa-layer-group mr-1 text-emerald-600"></i> ตัวอย่าง 20 ฉบับ (2 หน้า: 18+2)
+                        </button>
+                        <button @click="loadSample23Data" class="btn btn-outline text-xs">
+                            <i class="fa-solid fa-layer-group mr-1 text-indigo-600"></i> ตัวอย่าง 23 ฉบับ (2 หน้า: 18+5)
+                        </button>
+                        <button @click="activeTab = 'preview'" class="btn btn-primary text-xs">
+                            <i class="fa-solid fa-eye mr-1"></i> ดูพรีวิวบันทึกข้อความ
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="card p-4 !mb-0 border-l-4 border-blue-600">
+                        <div class="text-xs text-slate-500 font-bold uppercase">จำนวนหนังสือทั้งหมด</div>
+                        <div class="text-2xl font-extrabold text-blue-900 mt-1">{{ memoItems.length }} ฉบับ</div>
+                        <div class="text-xs text-slate-400 mt-1">พร้อมสร้างหนังสือนำส่งรายบริษัท</div>
+                    </div>
+                    <div class="card p-4 !mb-0 border-l-4 border-emerald-600">
+                        <div class="text-xs text-slate-500 font-bold uppercase">การจัดหน้าบันทึกข้อความ</div>
+                        <div class="text-xl font-bold text-emerald-800 mt-1">
+                            <i class="fa-solid fa-file-lines text-emerald-600 mr-1"></i> รวม {{ totalPages }} หน้า A4
+                        </div>
+                        <div class="text-xs text-slate-400 mt-1">{{ totalPages > 1 ? 'มีข้อความส่งต่อไปหน้า 2' : 'จบใน 1 หน้าพอดี' }}</div>
+                    </div>
+                    <div class="card p-4 !mb-0 border-l-4 border-amber-500">
+                        <div class="text-xs text-slate-500 font-bold uppercase">วันที่เสนอลงนาม</div>
+                        <div class="text-base font-bold text-slate-800 mt-1">
+                            {{ toThaiNumerals(formatThaiDate(memo.date, true)) }}
+                        </div>
+                        <div class="text-xs text-slate-400 mt-1">ประจำปี พ.ศ. {{ toThaiNumerals(memoYearBE) }}</div>
+                    </div>
+                    <div class="card p-4 !mb-0 border-l-4 border-indigo-500">
+                        <div class="text-xs text-slate-500 font-bold uppercase">ผู้เสนอเรื่อง</div>
+                        <div class="text-base font-bold text-slate-800 mt-1 truncate">{{ memo.submitterName }}</div>
+                        <div class="text-xs text-slate-400 mt-1 truncate">{{ memo.submitterPosition }}</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title text-base flex items-center justify-between">
+                        <span><i class="fa-solid fa-envelope-open-text text-blue-700 mr-2"></i> รายละเอียดส่วนหัวบันทึกข้อความและผู้มีอำนาจลงนาม</span>
+                        <button @click="activeTab = 'memoInfo'" class="text-xs text-blue-600 font-semibold hover:underline">
+                            <i class="fa-solid fa-pen mr-1"></i> แก้ไขตั้งค่า
+                        </button>
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        <div><b>ส่วนราชการ:</b> {{ memo.department }}</div>
+                        <div><b>เลขที่บันทึกภายใน:</b> {{ memo.docPrefix }} / {{ memoYearBE }}</div>
+                        <div><b>เรื่อง:</b> {{ memo.subject }}</div>
+                        <div><b>เรียน (บันทึกภายใน):</b> {{ memo.targetSignerHeading }}</div>
+                        <div class="md:col-span-2 pt-2 border-t border-slate-100">
+                            <b>ผู้ลงนามหนังสือนำส่งภายนอก:</b> <span class="text-blue-800 font-semibold">{{ memo.signerName }}</span> — <span class="text-slate-600">{{ memo.signerPosition }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 1: MEMO INFO & SIGNER SETUP -->
+            <div v-show="activeTab === 'memoInfo'" class="max-w-3xl mx-auto p-6">
+                <div class="flex justify-between items-center mb-5">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800 m-0">1) ตั้งค่าหัวบันทึก & ผู้ลงนาม</h2>
+                        <div class="text-sm text-slate-500">กำหนดข้อมูลส่วนหัวบันทึกข้อความ และซิงก์ผู้มีอำนาจลงนามทั้งบันทึกภายในและหนังสือนำส่งภายนอก</div>
+                    </div>
+                    <button @click="activeTab = 'items'" class="btn btn-secondary text-xs">
+                        ถัดไป: จัดการรายการหนังสือ <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+
+                <!-- แถบตั้งค่าตราครุฑ -->
+                <div class="card bg-slate-50 border-slate-300 mb-5 py-3 px-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-white border rounded flex items-center justify-center p-1 overflow-hidden shadow-sm">
+                                <img :src="garudaSrc" alt="ตราครุฑ" class="max-h-full max-w-full object-contain">
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-xs text-slate-800">ตราครุฑมาตรฐานราชการ (ใช้ร่วมกันทั้งบันทึกข้อความและหนังสือนำส่ง)</h4>
+                                <div class="text-[11px] text-slate-500">{{ assets.garudaBase64 ? '✅ ฝังภาพตราครุฑในระบบแล้ว' : '🌐 ใช้ภาพตราครุฑเริ่มต้น (แนะนำให้อัปโหลดไฟล์ PNG คมชัดเพื่อส่งออก Word)' }}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <label class="btn btn-outline text-xs py-1.5 px-3 cursor-pointer bg-white">
+                                <i class="fa-solid fa-upload mr-1"></i> เปลี่ยนรูปตราครุฑ
+                                <input type="file" class="hidden" accept="image/*" @change="handleGarudaUpload">
+                            </label>
+                            <button v-if="assets.garudaBase64" @click="resetGarudaAsset" class="text-xs text-red-500 hover:text-red-700 p-1.5" title="คืนค่าเดิม"><i class="fa-solid fa-rotate-left"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- กล่องที่ 1: ส่วนหัวบันทึกข้อความ -->
+                <div class="card">
+                    <h3 class="card-title text-base border-b pb-2.5"><i class="fa-solid fa-file-invoice text-blue-700 mr-2"></i> 1. ส่วนหัวบันทึกข้อความ</h3>
+                    <div class="space-y-3.5">
+                        <div>
+                            <label class="form-label">ส่วนราชการ</label>
+                            <input type="text" v-model="memo.department" class="form-input font-bold" placeholder="สาขาวิศวกรรมโยธาและสิ่งแวดล้อม คณะวิศวกรรมศาสตร์ มทร.ล้านนา ตาก โทร.๒๒๖" @change="saveState">
+                        </div>
+                        <div>
+                            <label class="form-label">ที่ (เลขที่ อว. ต้นเรื่องของบันทึกข้อความ)</label>
+                            <input type="text" v-model="memo.docPrefix" class="form-input font-bold text-blue-900" placeholder="อว.๐๖๕๔.๐๔(๒)/ยส." @change="saveState">
+                        </div>
+                        <div>
+                            <label class="form-label">วันที่เสนอลงนาม <span class="text-red-500">* (ใช้เป็นวันที่เริ่มต้นของหนังสือนำส่งด้วย)</span></label>
+                            <input type="date" v-model="memo.date" class="form-input font-bold text-blue-900" @change="saveState">
+                        </div>
+                        <div>
+                            <label class="form-label">เรื่อง</label>
+                            <input type="text" v-model="memo.subject" class="form-input font-bold" placeholder="ขอความอนุเคราะห์ลงนามหนังสือผลทดสอบวัสดุ" @change="saveState">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- กล่องที่ 2: ผู้มีอำนาจลงนาม -->
+                <div class="card bg-gradient-to-b from-blue-50/50 to-white border-blue-200">
+                    <div class="flex justify-between items-center mb-3 border-b border-blue-100 pb-2.5">
+                        <h3 class="card-title text-base m-0 text-blue-900"><i class="fa-solid fa-user-check text-blue-700 mr-2"></i> 2. ผู้มีอำนาจลงนาม (ซิงก์บันทึกภายใน & หนังสือนำส่งภายนอก)</h3>
+                        <span class="text-xs text-blue-600 font-semibold">Presets มาตรฐาน</span>
+                    </div>
+
+                    <div class="space-y-3.5">
+                        <div>
+                            <label class="form-label text-blue-800">เลือกผู้มีอำนาจลงนามสำเร็จรูป (Quick Presets)</label>
+                            <select v-model="selectedSignerIndex" class="form-input font-bold text-blue-900 bg-blue-50/40" @change="applySignerPreset">
+                                <option v-for="(p, idx) in signerPresets" :key="idx" :value="idx">{{ p.label }}</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">เรียน... (สำหรับบันทึกข้อความภายใน)</label>
+                            <input type="text" v-model="memo.targetSignerHeading" class="form-input font-bold text-slate-800" @change="saveState">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 pt-2 border-t border-blue-100">
+                            <div class="md:col-span-4">
+                                <label class="form-label text-indigo-900">ยศ/คำนำหน้าบรรทัดบน (ถ้ามี)</label>
+                                <input type="text" v-model="memo.signerRankPrefix" class="form-input font-bold text-indigo-900" placeholder="เช่น พันจ่าเอก (เว้นว่างได้)" @change="saveState">
+                            </div>
+                            <div class="md:col-span-8">
+                                <label class="form-label text-indigo-900">ชื่อในวงเล็บ (สำหรับหนังสือนำส่งภายนอก)</label>
+                                <input type="text" v-model="memo.signerRealName" class="form-input font-bold text-indigo-900" placeholder="เช่น อำนาจ  ใจคำฟู หรือ ผู้ช่วยศาสตราจารย์ทนงศักดิ์ ยาทะเล" @change="saveState">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label text-indigo-900">ตำแหน่งผู้ลงนาม (สำหรับหนังสือนำส่งภายนอก รองรับหลายบรรทัด)</label>
+                            <textarea v-model="memo.signerPosition" rows="4" class="form-input text-xs font-medium text-slate-700 leading-relaxed" @change="saveState"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- กล่องที่ 3: ผู้จัดทำบันทึกและลงนามเสนอเรื่อง -->
+                <div class="card">
+                    <h3 class="card-title text-base border-b pb-2.5"><i class="fa-solid fa-pen-nib text-blue-700 mr-2"></i> 3. ผู้จัดทำบันทึกและลงนามเสนอเรื่อง</h3>
+                    <div class="space-y-3.5">
+                        <div>
+                            <label class="form-label text-blue-800">เลือกอาจารย์ผู้เสนอเรื่องสำเร็จรูป (Quick Select)</label>
+                            <select v-model="selectedSubmitterIndex" class="form-input font-bold text-blue-900" @change="applySubmitterPreset">
+                                <option v-for="(sub, idx) in submitterPresets" :key="idx" :value="idx">
+                                    {{ sub.name }} ({{ sub.position }})
+                                </option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">ชื่อผู้เสนอเรื่อง</label>
+                            <input type="text" v-model="memo.submitterName" class="form-input font-bold" placeholder="นายจักรพันธ์ ธงทอง" @change="saveState">
+                        </div>
+                        <div>
+                            <label class="form-label">ตำแหน่งผู้เสนอเรื่อง</label>
+                            <input type="text" v-model="memo.submitterPosition" class="form-input" placeholder="อาจารย์สาขาวิศวกรรมโยธาและสิ่งแวดล้อม" @change="saveState">
+                        </div>
+                        <div>
+                            <label class="form-label">คำลงท้ายมาตรฐาน</label>
+                            <input type="text" v-model="memo.closingText" class="form-input font-bold text-slate-700" placeholder="จึงเรียนมาเพื่อโปรดพิจารณาอนุเคราะห์" @change="saveState">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: ITEMS MANAGER & COVER LETTER GENERATOR -->
+            <div v-show="activeTab === 'items'" class="max-w-6xl mx-auto p-6">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800 m-0">2) จัดการรายการหนังสือ & สร้างหนังสือนำส่งรายบริษัท</h2>
+                        <div class="text-sm text-slate-500">
+                            จัดการเลขที่หนังสือผู้ขอ, หน่วยงาน, เลข อว. นำส่ง และกดปุ่ม <b class="text-indigo-700">"หนังสือนำส่ง"</b> เพื่อดูพรีวิวหรือส่งออกไฟล์ Word แยกรายบริษัท
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button @click="showBatchAiModal = true" class="btn bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-800 hover:to-indigo-800 text-white text-xs shadow-sm">
+                            <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i> สกัดจากภาพด้วย Gemini AI
+                        </button>
+                        <label class="btn btn-outline text-xs cursor-pointer bg-white">
+                            <i class="fa-solid fa-folder-open text-amber-500 mr-1.5"></i> นำเข้า JSON จากแอปทดสอบ
+                            <input type="file" multiple class="hidden" accept=".json" @change="handleBatchJsonImport">
+                        </label>
+                        <button @click="addNewItem" class="btn btn-secondary text-xs">
+                            <i class="fa-solid fa-plus mr-1.5"></i> เพิ่มรายการ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- การตั้งค่าจุดตัดหน้าบันทึกข้อความ -->
+                <div v-if="totalPages > 1" class="mb-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg flex flex-wrap items-center justify-between text-xs text-indigo-900 gap-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-scissors text-indigo-600"></i>
+                        <span>รายการเกิน 10 ฉบับ (ปัจจุบัน {{ memoItems.length }} ฉบับ) หน้า 1 แสดง <b>{{ actualSplitIndex }}</b> ฉบับ และตัดขึ้นหน้า 2 ที่ลำดับ <b>{{ actualSplitIndex + 1 }}</b> ({{ nextItemCatchword }})</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="font-bold">ปรับจำนวนฉบับในหน้า 1:</label>
+                        <select v-model.number="customSplitIndex" @change="saveState" class="form-input !w-36 !py-1 text-xs font-bold text-indigo-900">
+                            <option :value="0">อัตโนมัติ ({{ autoSplitIndex }} ฉบับ)</option>
+                            <option v-for="n in Math.min(18, memoItems.length - 1)" :key="n" :value="n">หน้า 1: {{ n }} ฉบับ</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- ตารางรายการหนังสือ -->
+                <div class="card p-0 overflow-hidden border border-slate-200 shadow-sm">
+                    <div class="bg-slate-100 px-3 py-2.5 border-b border-slate-200 grid grid-cols-12 items-center font-bold text-xs text-slate-700 gap-2">
+                        <div class="col-span-1 text-center">ลำดับ</div>
+                        <div class="col-span-3">เลขที่หนังสือของผู้ขอ / หรือวันที่หนังสือ</div>
+                        <div class="col-span-4">หน่วยงาน / ห้างหุ้นส่วน / บริษัท ผู้ขอความอนุเคราะห์</div>
+                        <div class="col-span-2">เลข อว. นำส่ง (docNo)</div>
+                        <div class="col-span-2 text-center">จัดการหนังสือนำส่ง</div>
+                    </div>
+
+                    <div class="divide-y divide-slate-100">
+                        <div v-for="(item, index) in memoItems" :key="index" class="px-3 py-2.5 grid grid-cols-12 items-center gap-2 hover:bg-slate-50 transition">
+                            <div class="col-span-1 text-center font-bold text-slate-500 text-xs">
+                                {{ index + 1 }}
+                            </div>
+                            <div class="col-span-3">
+                                <input type="text" v-model="item.letterRef" @change="saveState" class="form-input text-xs font-semibold text-blue-900" placeholder="เช่น หนังสือที่ สท 76003/595">
+                            </div>
+                            <div class="col-span-4">
+                                <input type="text" v-model="item.requestor" @change="onRequestorChange(item)" class="form-input text-xs font-medium text-slate-800" placeholder="เช่น องค์การบริหารส่วนตำบลท่าทอง">
+                                <div v-if="item.project" class="text-[11px] text-emerald-700 truncate mt-0.5" :title="item.project">
+                                    <i class="fa-solid fa-helmet-safety mr-1"></i>{{ item.project }}
+                                </div>
+                            </div>
+                            <div class="col-span-2">
+                                <input type="text" v-model="item.docNo" @change="saveState" class="form-input text-xs font-mono font-bold text-indigo-900 bg-indigo-50/40" placeholder="อว 0654.11/2795">
+                            </div>
+                            <div class="col-span-2 flex items-center justify-center gap-1.5">
+                                <button @click="openCoverModal(index)" class="btn bg-indigo-600 hover:bg-indigo-700 text-white text-xs !py-1.5 !px-2.5 shadow-sm flex-grow" title="จัดการและส่งออกหนังสือนำส่งฉบับนี้">
+                                    <i class="fa-solid fa-file-word mr-1"></i> หนังสือนำส่ง
+                                </button>
+                                <button @click="removeItem(index)" class="text-red-400 hover:text-red-700 p-1.5" title="ลบรายการนี้">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div v-if="memoItems.length === 0" class="p-8 text-center text-slate-400">
+                            <i class="fa-solid fa-inbox text-3xl mb-2 block text-slate-300"></i>
+                            ยังไม่มีรายการหนังสือ คลิกที่ปุ่ม <b>"เพิ่มรายการ"</b> หรือปุ่ม <b>"สกัดจากภาพด้วย Gemini AI"</b>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mt-4">
+                    <span class="text-xs text-slate-500 font-bold">
+                        รวมทั้งสิ้น {{ memoItems.length }} ฉบับ (บันทึกข้อความรวม {{ totalPages }} หน้า)
+                    </span>
+                    <button @click="activeTab = 'preview'" class="btn btn-primary text-xs">
+                        ไปที่พรีวิวบันทึกข้อความรวม ({{ totalPages }} หน้า) <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 3: LIVE MEMO PREVIEW -->
+            <div v-show="activeTab === 'preview'" class="preview-area relative">
+                <!-- Floating Export Word Toolbar -->
+                <div class="fixed top-20 right-8 flex flex-wrap gap-2 z-40 bg-white/95 backdrop-blur p-2.5 rounded-xl shadow-2xl border border-slate-200">
+                    <button @click="exportMemoToWord" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2.5 rounded-lg font-bold text-xs shadow-md transition flex items-center gap-2">
+                        <i class="fa-solid fa-file-word text-sm"></i> ส่งออกบันทึกข้อความรวม เป็น Word (.doc)
+                    </button>
+                    <button @click="activeTab = 'items'" class="btn btn-outline text-xs">
+                        <i class="fa-solid fa-list-check mr-1"></i> กลับหน้าจัดการรายการ / หนังสือนำส่ง
+                    </button>
+                </div>
+
+                <!-- =================== แผ่นกระดาษหน้าที่ 1 =================== -->
+                <div class="paper-memo mx-auto">
+                    <div>
+                        <table class="memo-top-table">
+                            <tr>
+                                <td style="width: 25%; vertical-align: bottom; padding: 0;">
+                                    <img :src="garudaSrc" alt="ตราครุฑ" class="garuda-memo-img">
+                                </td>
+                                <td style="width: 50%; text-align: center; vertical-align: bottom; padding: 0;">
+                                    <div class="memo-title-text">บันทึกข้อความ</div>
+                                </td>
+                                <td style="width: 25%; padding: 0;"></td>
+                            </tr>
+                        </table>
+
+                        <table class="memo-meta-table">
+                            <tr>
+                                <td style="width: 22mm; font-weight: bold; white-space: nowrap; vertical-align: bottom; padding: 0; line-height: 1.18;">ส่วนราชการ</td>
+                                <td colspan="3" class="memo-dotted-cell" style="padding-left: 2mm !important;">
+                                    {{ toThaiNumerals(memo.department) }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: bold; white-space: nowrap; vertical-align: bottom; padding: 0; line-height: 1.18;">ที่</td>
+                                <td class="memo-dotted-cell" style="width: 52%; padding-left: 2mm !important;">
+                                    {{ toThaiNumerals(memo.docPrefix) }}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/{{ toThaiNumerals(memoYearBE) }}
+                                </td>
+                                <td style="width: 14mm; font-weight: bold; text-align: right; padding-right: 2mm !important; vertical-align: bottom; white-space: nowrap; line-height: 1.18;">วันที่</td>
+                                <td class="memo-dotted-cell" style="padding-left: 2mm !important;">
+                                    &nbsp;&nbsp;{{ formatThaiDate(memo.date, true) }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight: bold; white-space: nowrap; vertical-align: bottom; padding: 0; line-height: 1.18;">เรื่อง</td>
+                                <td colspan="3" class="memo-dotted-cell" style="padding-left: 2mm !important;">
+                                    {{ memo.subject }}
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div style="margin-top: 2.5mm; margin-bottom: 2.5mm; font-size: 16pt;">
+                            <span style="font-weight: bold;">เรียน</span> &nbsp;&nbsp;{{ toThaiNumerals(memo.targetSignerHeading) }}
+                        </div>
+
+                        <p class="memo-p">
+                            ตามที่ สาขาวิศวกรรมโยธาและสิ่งแวดล้อม คณะวิศวกรรมศาสตร์ ได้ดำเนินโครงการบริการสังคม ในด้านการบริการทดสอบวัสดุก่อสร้างให้กับหน่วยงานภาครัฐและเอกชน เพื่อดำเนินการทดสอบประเมินผลและรับรองคุณภาพของวัสดุในงานก่อสร้าง ทั้งในห้องปฏิบัติการและภาคสนาม ให้บริการแก่หน่วยงานภาครัฐและเอกชน ที่เกี่ยวข้องกับงานก่อสร้าง หรืองานที่ต้องมีการทดสอบวัสดุ สาขาวิศวกรรมโยธาและสิ่งแวดล้อม ได้ดำเนินการทดสอบวัสดุเรียบร้อยแล้ว นั้น
+                        </p>
+
+                        <p class="memo-p">
+                            ในการนี้ สาขาวิศวกรรมโยธาและสิ่งแวดล้อม จึงขอความอนุเคราะห์ท่านลงนามหนังสือผลทดสอบวัสดุ เพื่อให้การดำเนินงานทดสอบวัสดุเป็นไปด้วยความเรียบร้อย โดยหนังสือขอความอนุเคราะห์จากหน่วยงานภายนอกมีรายละเอียดดังเอกสารที่แนบมา จำนวน {{ toThaiNumerals(memoItems.length) }} ฉบับ ดังนี้
+                        </p>
+
+                        <!-- รายการหนังสือหน้าที่ 1 -->
+                        <table class="memo-items-list-table" :style="{ margin: (totalPages === 1 && memoItems.length >= 9) ? '0.5mm 0 1mm 0' : '1mm 0 1.8mm 0', lineHeight: (totalPages === 1 && memoItems.length >= 9) ? '1.03' : '1.08' }">
+                            <tbody>
+                                <tr v-for="(item, idx) in page1Items" :key="idx">
+                                    <td style="width: 50%; padding-left: 1.5cm; white-space: nowrap;" :style="{ paddingTop: (totalPages === 1 && memoItems.length >= 9) ? '0.15mm' : '0.35mm', paddingBottom: (totalPages === 1 && memoItems.length >= 9) ? '0.15mm' : '0.35mm' }">
+                                        <span style="display: inline-block; width: 6.5mm; text-align: left;">{{ toThaiNumerals(idx + 1) }}.</span>{{ formatLetterRef(item) }}
+                                    </td>
+                                    <td style="width: 50%; padding-left: 4mm;" :style="{ paddingTop: (totalPages === 1 && memoItems.length >= 9) ? '0.15mm' : '0.35mm', paddingBottom: (totalPages === 1 && memoItems.length >= 9) ? '0.15mm' : '0.35mm' }">
+                                        {{ toThaiNumerals(cleanText(item.requestor)) }}
+                                    </td>
+                                </tr>
+                                <tr v-if="memoItems.length === 0">
+                                    <td colspan="2" style="text-align: center; color: #94a3b8; padding: 6mm 0;">
+                                        (ยังไม่มีรายการหนังสือ กรุณากดแท็บที่ 2 เพื่อเพิ่มรายการหนังสือ)
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <template v-if="totalPages === 1">
+                            <p :style="{ marginTop: memoItems.length >= 9 ? '6pt' : '12pt', marginBottom: '1mm', fontSize: '16pt', textIndent: '1.5cm' }">
+                                {{ memo.closingText }}
+                            </p>
+                        </template>
+                    </div>
+
+                    <div>
+                        <div v-if="totalPages === 1" class="memo-sign-section" :style="{ marginTop: memoItems.length >= 9 ? '2mm' : '5mm' }">
+                            <table class="memo-sign-table">
+                                <tr>
+                                    <td style="width: 45%;"></td>
+                                    <td style="width: 55%; text-align: center; font-size: 16pt; line-height: 1.1;">
+                                        <div :style="{ height: memoItems.length >= 9 ? '12mm' : '16mm' }"></div>
+                                        <div>({{ memo.submitterName }})</div>
+                                        <div style="margin-top: 1mm;">{{ memo.submitterPosition }}</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div v-if="totalPages > 1" style="text-align: right; font-size: 16pt; padding-right: 5mm; margin-bottom: 1mm;">
+                            {{ nextItemCatchword }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- =================== แผ่นกระดาษหน้าที่ 2 (ถ้ามี) =================== -->
+                <div v-if="totalPages > 1" class="paper-memo mx-auto" style="justify-content: flex-start;">
+                    <div>
+                        <div style="text-align: center; font-size: 16pt; margin-bottom: 5mm; margin-top: 2mm;">
+                            -{{ toThaiNumerals(2) }}-
+                        </div>
+
+                        <table class="memo-items-list-table">
+                            <tbody>
+                                <tr v-for="(item, idx) in page2Items" :key="idx">
+                                    <td style="width: 50%; padding-left: 1.5cm; white-space: nowrap;">
+                                        <span style="display: inline-block; width: 6.5mm; text-align: left;">{{ toThaiNumerals(actualSplitIndex + idx + 1) }}.</span>{{ formatLetterRef(item) }}
+                                    </td>
+                                    <td style="width: 50%; padding-left: 4mm;">
+                                        {{ toThaiNumerals(cleanText(item.requestor)) }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <p style="margin-top: 10pt; margin-bottom: 2mm; font-size: 16pt; text-indent: 1.5cm;">
+                            {{ memo.closingText }}
+                        </p>
+
+                        <div class="memo-sign-section" style="margin-top: 8mm;">
+                            <table class="memo-sign-table">
+                                <tr>
+                                    <td style="width: 45%;"></td>
+                                    <td style="width: 55%; text-align: center; font-size: 16pt; line-height: 1.1;">
+                                        <div style="height: 16mm;"></div>
+                                        <div>({{ memo.submitterName }})</div>
+                                        <div style="margin-top: 1mm;">{{ memo.submitterPosition }}</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =================== MODAL 1: COVER LETTER MANAGER (หนังสือนำส่งรายบริษัท) =================== -->
+            <div v-if="showCoverModal && activeCoverItem" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+                <div class="bg-white rounded-2xl max-w-6xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
+                    <div class="bg-gradient-to-r from-indigo-900 to-blue-800 text-white px-6 py-3.5 flex justify-between items-center">
+                        <div class="flex items-center gap-2.5">
+                            <i class="fa-solid fa-envelope-open-text text-amber-300 text-lg"></i>
+                            <div>
+                                <h3 class="font-bold text-base m-0">จัดการหนังสือนำส่งภายนอก (ฉบับที่ {{ activeCoverIndex + 1 }} / {{ memoItems.length }})</h3>
+                                <div class="text-xs text-sky-200">{{ activeCoverItem.requestor || 'ไม่ระบุหน่วยงาน' }}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button v-if="activeCoverIndex > 0" @click="openCoverModal(activeCoverIndex - 1)" class="btn bg-white/10 hover:bg-white/20 text-white text-xs py-1 px-2.5">
+                                <i class="fa-solid fa-chevron-left mr-1"></i> ฉบับก่อนหน้า
+                            </button>
+                            <button v-if="activeCoverIndex < memoItems.length - 1" @click="openCoverModal(activeCoverIndex + 1)" class="btn bg-white/10 hover:bg-white/20 text-white text-xs py-1 px-2.5">
+                                ฉบับถัดไป <i class="fa-solid fa-chevron-right ml-1"></i>
+                            </button>
+                            <button type="button" @click="showCoverModal = false" class="text-white/80 hover:text-white ml-2">
+                                <i class="fa-solid fa-xmark text-xl"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-6 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-6 bg-slate-50 flex-grow">
+                        <!-- ฝั่งซ้าย: ฟอร์มแก้ไขข้อมูลหนังสือนำส่ง -->
+                        <div class="lg:col-span-5 space-y-2.5 bg-white p-4 rounded-xl border border-slate-200 shadow-sm overflow-y-auto max-h-[70vh]">
+                            <h4 class="font-bold text-sm text-indigo-900 border-b pb-2 mb-2 flex items-center justify-between">
+                                <span><i class="fa-solid fa-pen-to-square mr-1.5"></i> ข้อมูลหนังสือนำส่ง (ตามแบบฟอร์มต้นฉบับ)</span>
+                                <span class="text-[11px] text-emerald-700 font-semibold">จำกัด 1 หน้า A4</span>
+                            </h4>
+
+                            <div class="grid grid-cols-2 gap-2.5">
+                                <div>
+                                    <label class="form-label">ที่ (เลข อว. นำส่ง)</label>
+                                    <input type="text" v-model="activeCoverItem.docNo" @change="saveState" class="form-input text-xs font-bold text-indigo-900" placeholder="อว 0654.11/2795">
+                                </div>
+                                <div>
+                                    <label class="form-label">วันที่ออกหนังสือ</label>
+                                    <input type="date" v-model="activeCoverItem.reportDate" @change="saveState" class="form-input text-xs font-bold">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-12 gap-2.5">
+                                <div class="col-span-5">
+                                    <label class="form-label">คำเชื่อมเรื่อง/การทดสอบ</label>
+                                    <select v-model="activeCoverItem.testActionPrefix" @change="saveState" class="form-input text-xs font-semibold">
+                                        <option value="ทดสอบคุณภาพวัสดุ">ทดสอบคุณภาพวัสดุ</option>
+                                        <option value="ทดสอบกำลังของวัสดุ">ทดสอบกำลังของวัสดุ</option>
+                                        <option value="ทดสอบกำลังดึงของวัสดุ">ทดสอบกำลังดึงของวัสดุ</option>
+                                        <option value="ทดสอบคุณสมบัติของวัสดุ">ทดสอบคุณสมบัติของวัสดุ</option>
+                                        <option value="ทดสอบวัสดุก่อสร้าง">ทดสอบวัสดุก่อสร้าง</option>
+                                        <option value="ทดสอบคุณภาพวัสดุก่อสร้าง">ทดสอบคุณภาพวัสดุก่อสร้าง</option>
+                                        <option value="ทดสอบคุณภาพวัสดุงานก่อสร้าง">ทดสอบคุณภาพวัสดุงานก่อสร้าง</option>
+                                        <option value="ทดสอบกำลังอัดตัวอย่างแท่งคอนกรีตรูปทรงลูกบาศก์">ทดสอบกำลังอัดตัวอย่างแท่งคอนกรีตรูปทรงลูกบาศก์</option>
+                                        <option value="ทดสอบความต้านทานแรงอัดแท่งคอนกรีตทรงกระบอก">ทดสอบความต้านทานแรงอัดแท่งคอนกรีตทรงกระบอก</option>
+                                        <option value="ทดสอบค่าความหนาแน่นของชั้นดิน">ทดสอบค่าความหนาแน่นของชั้นดิน</option>
+                                        <option value="ทดสอบเจาะสำรวจชั้นดิน (Boring Test)">ทดสอบเจาะสำรวจชั้นดิน (Boring Test)</option>
+                                        <option value="สอบเทียบเครื่อง (Calibration) ทดสอบกำลังแรงอัดของตัวอย่างคอนกรีต">สอบเทียบเครื่อง (Calibration)...</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-7">
+                                    <label class="form-label">วงเล็บวัสดุ (เช่น ตัวอย่างเหล็กเสริม) <span class="text-slate-400 font-normal">- เว้นว่างได้</span></label>
+                                    <input type="text" v-model="activeCoverItem.testMaterial" @change="saveState" list="materialList" class="form-input text-xs font-semibold" placeholder="เช่น ตัวอย่างเหล็กเสริม">
+                                    <datalist id="materialList">
+                                        <option value="ตัวอย่างเหล็กเสริม"></option>
+                                        <option value="ตัวอย่างเหล็กเส้น"></option>
+                                        <option value="ตัวอย่างเหล็กเสริมคอนกรีต"></option>
+                                        <option value="ตัวอย่างแท่งคอนกรีต"></option>
+                                        <option value="ตัวอย่างลูกบาศก์คอนกรีต"></option>
+                                        <option value="ตัวอย่างแท่งลูกบาศก์คอนกรีต"></option>
+                                        <option value="ตัวอย่างลูกปูน"></option>
+                                        <option value="ตัวอย่างลูกปูนรูปลูกบาศก์"></option>
+                                    </datalist>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2.5">
+                                <div>
+                                    <label class="form-label">เรียน (คำขึ้นต้นผู้รับ)</label>
+                                    <input type="text" v-model="activeCoverItem.recipientTitle" @change="saveState" class="form-input text-xs font-bold text-blue-900" placeholder="เช่น นายกองค์การบริหารส่วนตำบลท่าทอง">
+                                </div>
+                                <div>
+                                    <label class="form-label">ชื่อหน่วยงานผู้ขอ (ในย่อหน้า)</label>
+                                    <input type="text" v-model="activeCoverItem.requestor" @change="onRequestorChange(activeCoverItem)" class="form-input text-xs font-bold text-slate-800">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-12 gap-2.5">
+                                <div class="col-span-7">
+                                    <label class="form-label">อ้างถึง (เลขที่หนังสือผู้ขอ)</label>
+                                    <input type="text" v-model="activeCoverItem.letterRef" @change="saveState" class="form-input text-xs font-semibold text-blue-900" placeholder="เช่น หนังสือที่ สท 76003/595">
+                                </div>
+                                <div class="col-span-5">
+                                    <label class="form-label">ลงวันที่ (ของหนังสืออ้างถึง)</label>
+                                    <input type="text" v-model="activeCoverItem.letterDateText" @change="saveState" class="form-input text-xs font-semibold" placeholder="เช่น 11 กันยายน 2569">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-12 gap-2.5">
+                                <div class="col-span-8">
+                                    <label class="form-label">สิ่งที่ส่งมาด้วย (จำนวน)</label>
+                                    <input type="number" min="1" v-model.number="activeCoverItem.reportPages" @change="saveState" class="form-input text-xs font-bold text-center">
+                                </div>
+                                <div class="col-span-4">
+                                    <label class="form-label">หน่วยนับ</label>
+                                    <select v-model="activeCoverItem.reportUnit" @change="saveState" class="form-input text-xs font-bold">
+                                        <option value="แผ่น">แผ่น</option>
+                                        <option value="เล่ม">เล่ม</option>
+                                        <option value="ฉบับ">ฉบับ</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="form-label">เพื่อใช้ในโครงการ (Project)</label>
+                                <textarea v-model="activeCoverItem.project" @change="saveState" rows="2" class="form-input text-xs" placeholder="เช่น โครงการปรับปรุงถนนคอนกรีตเสริมเหล็ก..."></textarea>
+                            </div>
+
+                            <div>
+                                <label class="form-label">สถานที่ก่อสร้าง ณ (Location)</label>
+                                <input type="text" v-model="activeCoverItem.location" @change="saveState" class="form-input text-xs" placeholder="เช่น หมู่ที่ 6 ตำบลท่าทอง อำเภอสวรรคโลก จังหวัดสุโขทัย">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2.5">
+                                <div>
+                                    <label class="form-label">ตามสัญญาจ้างเลขที่</label>
+                                    <input type="text" v-model="activeCoverItem.contractNo" @change="saveState" class="form-input text-xs" placeholder="เช่น 16/2569">
+                                </div>
+                                <div>
+                                    <label class="form-label">ลงวันที่สัญญาจ้าง</label>
+                                    <input type="text" v-model="activeCoverItem.contractDate" @change="saveState" class="form-input text-xs" placeholder="เช่น 7 เมษายน 2569">
+                                </div>
+                            </div>
+
+                            <!-- ตั้งค่าระยะขอบกระดาษ (Margins) สำหรับหนังสือนำส่ง -->
+                            <div class="pt-2 border-t border-slate-200 bg-slate-50 p-2.5 rounded-lg">
+                                <div class="text-[11px] font-bold text-slate-700 mb-1.5 flex justify-between items-center">
+                                    <span><i class="fa-solid fa-ruler-combined mr-1 text-indigo-600"></i> ตั้งค่าระยะขอบกระดาษ A4 (ซม.) — บังคับจบใน 1 หน้า</span>
+                                    <button @click="resetCoverMargins" class="text-[10px] text-blue-600 hover:underline">คืนค่ามาตรฐาน</button>
+                                </div>
+                                <div class="grid grid-cols-4 gap-2 text-center">
+                                    <div>
+                                        <label class="text-[10px] text-slate-500 block">บน (ซม.)</label>
+                                        <input type="number" step="0.1" min="0.8" max="3.0" v-model.number="coverMargins.top" @change="saveState" class="form-input !py-1 !px-1.5 text-xs text-center font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] text-slate-500 block">ล่าง (ซม.)</label>
+                                        <input type="number" step="0.1" min="0.8" max="3.0" v-model.number="coverMargins.bottom" @change="saveState" class="form-input !py-1 !px-1.5 text-xs text-center font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] text-slate-500 block">ซ้าย (ซม.)</label>
+                                        <input type="number" step="0.1" min="1.5" max="3.5" v-model.number="coverMargins.left" @change="saveState" class="form-input !py-1 !px-1.5 text-xs text-center font-bold">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] text-slate-500 block">ขวา (ซม.)</label>
+                                        <input type="number" step="0.1" min="1.0" max="3.0" v-model.number="coverMargins.right" @change="saveState" class="form-input !py-1 !px-1.5 text-xs text-center font-bold">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ฝั่งขวา: พรีวิวหนังสือนำส่ง (แก้ไขครบทั้ง 3 ข้อ) -->
+                        <div class="lg:col-span-7 flex flex-col">
+                            <div class="text-xs font-bold text-slate-600 mb-2 flex justify-between items-center">
+                                <span><i class="fa-solid fa-eye mr-1 text-indigo-600"></i> ตัวอย่างหนังสือนำส่งราชการ (A4 แนวตั้ง 1 หน้า | รูปแบบตามที่แก้ไข)</span>
+                                <span class="text-[11px] text-indigo-700 font-semibold">ชื่อไฟล์: {{ getCoverFilename(activeCoverItem) }}</span>
+                            </div>
+                            <div class="paper-cover-mini flex-grow rounded-lg overflow-y-auto max-h-[70vh] flex flex-col justify-between"
+                                 :style="{ padding: `${coverMargins.top * 8}px ${coverMargins.right * 8}px ${coverMargins.bottom * 8}px ${coverMargins.left * 8}px` }">
+                                <div>
+                                    <!-- ส่วนหัว -->
+                                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 1mm;">
+                                        <tr>
+                                            <td style="width: 38%; vertical-align: top !important; white-space: nowrap; padding-top: 58pt;">
+                                                <div style="line-height: 1.15;">ที่ {{ toThaiNumerals(activeCoverItem.docNo || 'อว ๐๖๕๔.๑๑/.......') }}</div>
+                                            </td>
+                                            <td style="width: 18%; text-align: center; vertical-align: top !important; padding-top: 0pt;">
+                                                <img :src="garudaSrc" alt="Garuda" style="height: 110pt; width: auto; display: inline-block; vertical-align: top;">
+                                            </td>
+                                            <td style="width: 44%; vertical-align: top !important; white-space: nowrap; padding-top: 58pt; padding-left: 1.5mm;">
+                                                <div style="line-height: 1.15;">มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา ตาก</div>
+                                                <div style="line-height: 1.15;">อำเภอเมืองตาก จังหวัดตาก ๖๓๐๐๐</div>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <!-- วันที่อยู่ตำแหน่ง 47% จากซ้าย -->
+                                            <td colspan="3" style="padding-top: 2mm; padding-left: 47%; white-space: nowrap;">
+                                                {{ formatThaiDateSpaced(activeCoverItem.reportDate || memo.date) }}
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <!-- ข้อ 1: คำขึ้นบรรทัด (เรื่อง, เรียน, อ้างถึง, สิ่งที่ส่งมาด้วย) ไม่ทำตัวหนา -->
+                                    <div style="margin-bottom: 1.5mm;">
+                                        เรื่อง&nbsp;&nbsp;{{ formatCoverSubject(activeCoverItem) }}
+                                    </div>
+                                    <div style="margin-bottom: 1.5mm;">
+                                        เรียน&nbsp;&nbsp;{{ toThaiNumerals(activeCoverItem.recipientTitle || formatCoverRecipient(activeCoverItem.requestor)) }}
+                                    </div>
+                                    <div style="margin-bottom: 1.5mm;">
+                                        อ้างถึง&nbsp;&nbsp;{{ formatCoverRefText(activeCoverItem) }}
+                                    </div>
+                                    <div style="margin-bottom: 3mm;">
+                                        สิ่งที่ส่งมาด้วย&nbsp;&nbsp;เอกสารรายงานผลการทดสอบ &nbsp;จำนวน &nbsp;{{ toThaiNumerals(activeCoverItem.reportPages || 1) }} &nbsp;{{ activeCoverItem.reportUnit || 'แผ่น' }}
+                                    </div>
+
+                                    <!-- ย่อหน้า 1 (ข้อ 2: เว้นหน้าคำว่า "นั้น" เพิ่มอีก 1 ตัวอักษร) -->
+                                    <p style="text-indent: 2.5cm; text-align: justify; margin-bottom: 2.5mm; line-height: 1.2;">
+                                        {{ buildCoverBodyParagraph1(activeCoverItem, false) }}
+                                    </p>
+
+                                    <!-- ย่อหน้า 2 -->
+                                    <p style="text-indent: 2.5cm; text-align: justify; margin-bottom: 2.5mm; line-height: 1.2;">
+                                        {{ buildCoverBodyParagraph2(activeCoverItem) }}
+                                    </p>
+
+                                    <!-- ย่อหน้า 3 -->
+                                    <p style="text-indent: 2.5cm; margin-bottom: 4mm;">
+                                        จึงเรียนมาเพื่อโปรดทราบ
+                                    </p>
+
+                                    <!-- บล็อกลงนาม: กึ่งกลางของชื่อและตำแหน่งผู้ลงนามอยู่ตรงกึ่งกลางของคำว่า "ขอแสดงความนับถือ" พอดี -->
+                                    <table style="width: 100%; border-collapse: collapse; margin-top: 2mm;">
+                                        <tr>
+                                            <td style="width: 47%; padding-left: 7%; text-align: center; line-height: 1.18;">
+                                                <div>ขอแสดงความนับถือ</div>
+                                                <div style="line-height: 1.18;">&nbsp;</div>
+                                                <div style="line-height: 1.18;">&nbsp;</div>
+                                                <div style="line-height: 1.18;">&nbsp;</div>
+                                                <template v-if="memo.signerRankPrefix">
+                                                    <div style="text-align: left; padding-left: 25%; margin-bottom: 0.5mm;">{{ toThaiNumerals(memo.signerRankPrefix) }}</div>
+                                                    <div>({{ toThaiNumerals(memo.signerRealName || memo.signerName) }})</div>
+                                                </template>
+                                                <template v-else>
+                                                    <div>({{ toThaiNumerals(memo.signerRealName || memo.signerName) }})</div>
+                                                </template>
+                                                <div style="white-space: pre-line;">{{ toThaiNumerals(memo.signerPosition) }}</div>
+                                            </td>
+                                            <td style="width: 6%;"></td>
+                                        </tr>
+                                    </table>
+                                </div>
+
+                                <!-- ข้อ 3: ส่วนท้ายกระดาษ 3 บรรทัดใช้อักษรขนาดเท่าเนื้อหาหลัก (16pt ใน Word) -->
+                                <div style="margin-top: 20mm; font-size: 14pt; line-height: 1.18;">
+                                    <div style="line-height: 1.15;">&nbsp;</div>
+                                    <div style="line-height: 1.15;">&nbsp;</div>
+                                    <div style="line-height: 1.15;">&nbsp;</div>
+                                    สำนักงานบริหารมหาวิทยาลัยฯ<br>
+                                    โทร. ๐ ๕๕๕๑ ๕๙๐๐<br>
+                                    ไปรษณีย์อิเล็กทรอนิกส์ sarabun_TK@rmutl.ac.th
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white px-6 py-3.5 border-t flex justify-between items-center">
+                        <span class="text-xs text-slate-500">
+                            <i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> ปรับแก้ทั้ง 3 จุดแล้ว (คำขึ้นต้นไม่หนา, เว้นหน้าคำว่า "นั้น" เพิ่ม 1 เคาะ, ท้ายกระดาษ 16pt)
+                        </span>
+                        <div class="flex gap-2">
+                            <button type="button" @click="showCoverModal = false" class="btn btn-outline text-xs">ปิดหน้าต่าง</button>
+                            <button type="button" @click="exportCoverLetterToWord(activeCoverItem)" class="btn bg-indigo-700 hover:bg-indigo-800 text-white text-xs shadow-md px-5">
+                                <i class="fa-solid fa-file-word mr-1.5"></i> ส่งออก Word หนังสือนำส่งฉบับนี้ (.doc)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =================== MODAL 2: AI VISION BATCH SCANNER =================== -->
+            <div v-if="showBatchAiModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                    <div class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white px-6 py-4 flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+                            <div>
+                                <h3 class="font-bold text-base m-0">สกัดข้อมูลบันทึกและหนังสือนำส่งจากภาพ (Multi-Image AI Batching)</h3>
+                                <div class="text-[11px] text-sky-200">ส่งพร้อมกันครั้งละ {{ batchChunkSize }} ภาพใน 1 Request (ประหยัดโควตา 4 เท่า) | โหมด Hybrid Flash + Pro</div>
+                            </div>
+                        </div>
+                        <button type="button" @click="showBatchAiModal = false" class="text-white/80 hover:text-white">
+                            <i class="fa-solid fa-xmark text-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="p-6 overflow-y-auto space-y-4 text-sm">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-900 flex flex-wrap justify-between items-center gap-2">
+                            <span><i class="fa-solid fa-bolt mr-1 text-amber-600"></i> <b>ประสิทธิภาพสูง:</b> ย่อภาพ <b>1200px (JPEG 0.80)</b> ส่งแบบกลุ่มครั้งละ <b>{{ batchChunkSize }} ภาพ/Request</b> สกัดแม่นยำทั้งเลขที่หนังสือ (รวมลายมือเขียน), หน่วยงานผู้ขอ, โครงการ และสัญญาจ้าง</span>
+                            <button @click="showApiKeyModal = true" class="btn btn-outline text-[11px] py-1 px-2.5 bg-white">
+                                <i class="fa-solid fa-sliders text-amber-600 mr-1"></i> ตั้งค่า Key & โมเดล ({{ activeAiModelId }})
+                            </button>
+                        </div>
+
+                        <!-- แถบแจ้งเตือน Cooldown เมื่อติด Rate Limit 429 หรือ Pacing Delay -->
+                        <div v-if="aiCooldownSeconds > 0" class="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded-xl flex items-center justify-between text-xs font-bold animate-pulse">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-hourglass-half text-amber-600 text-base"></i>
+                                <span>{{ aiCooldownReason }}</span>
+                            </div>
+                            <span class="bg-amber-600 text-white px-2.5 py-1 rounded-full font-mono">รอ {{ aiCooldownSeconds }} วินาที</span>
+                        </div>
+
+                        <!-- Drop Zone -->
+                        <div class="border-2 border-dashed border-blue-300 rounded-xl p-6 text-center bg-slate-50 hover:bg-blue-50/40 transition">
+                            <i class="fa-solid fa-images text-3xl text-blue-500 mb-2"></i>
+                            <p class="text-xs font-bold text-slate-700 mb-1">เลือกไฟล์ภาพหนังสือขอความอนุเคราะห์จากหน่วยงานภายนอก (รองรับการสแกนหลายสิบภาพพร้อมกัน)</p>
+                            <input type="file" multiple id="batchImageInput" class="hidden" accept="image/*" @change="handleBatchImagesUpload">
+                            <label for="batchImageInput" class="btn btn-primary text-xs cursor-pointer py-2 px-4 shadow-sm inline-flex items-center gap-1.5 mt-2">
+                                <i class="fa-solid fa-arrow-up-from-bracket"></i> เลือกภาพหนังสือขอความอนุเคราะห์
+                            </label>
+                        </div>
+
+                        <!-- Uploaded Queue -->
+                        <div v-if="aiQueue.length > 0" class="space-y-2">
+                            <div class="text-xs font-bold text-slate-700 flex flex-wrap justify-between items-center gap-2">
+                                <span>คิวรูปภาพ ({{ aiQueue.length }} ภาพ) — แบ่งส่ง {{ Math.ceil(aiQueue.length / batchChunkSize) }} ชุดคำสั่ง</span>
+                                <div class="flex items-center gap-2">
+                                    <select v-model.number="batchChunkSize" class="form-input !w-28 !py-1 text-xs font-bold text-indigo-900" title="จำนวนภาพต่อ 1 Request">
+                                        <option :value="3">3 ภาพ / ครั้ง</option>
+                                        <option :value="4">4 ภาพ / ครั้ง</option>
+                                        <option :value="5">5 ภาพ / ครั้ง</option>
+                                    </select>
+                                    <button v-if="!isAiScanning" @click="runBatchAiScan" class="btn btn-secondary text-xs py-1.5 px-3.5">
+                                        <i class="fa-solid fa-play mr-1.5"></i> เริ่มสแกนแบบกลุ่ม (Batch)
+                                    </button>
+                                    <span v-else class="text-xs text-blue-700 font-bold">
+                                        <i class="fa-solid fa-spinner fa-spin mr-1"></i> กำลังประมวลผลแบบกลุ่ม...
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="max-h-60 overflow-y-auto space-y-2 pr-1">
+                                <div v-for="(imgItem, qIdx) in aiQueue" :key="qIdx" class="bg-white p-2.5 rounded-lg border border-slate-200 flex items-center justify-between gap-3 text-xs">
+                                    <div class="flex items-center gap-2.5">
+                                        <img :src="imgItem.preview" class="w-11 h-11 object-cover rounded border cursor-pointer" @click="lightboxImage = imgItem.preview">
+                                        <div>
+                                            <div class="font-bold text-slate-800 truncate max-w-xs">#{{ qIdx + 1 }} {{ imgItem.file.name }}</div>
+                                            <div class="text-[11px]">
+                                                สถานะ:
+                                                <span v-if="imgItem.status === 'success'" class="text-emerald-600 font-bold">
+                                                    <i class="fa-solid fa-circle-check mr-0.5"></i> สกัดสำเร็จ ({{ imgItem.usedModel }})
+                                                </span>
+                                                <span v-else-if="imgItem.status === 'scanning'" class="text-blue-600 font-bold">
+                                                    <i class="fa-solid fa-spinner fa-spin mr-0.5"></i> {{ imgItem.statusText || 'กำลังอ่าน...' }}
+                                                </span>
+                                                <span v-else-if="imgItem.status === 'error'" class="text-red-500 font-bold" :title="imgItem.errorMsg">
+                                                    <i class="fa-solid fa-circle-exclamation mr-0.5"></i> {{ imgItem.errorMsg || 'ไม่สำเร็จ' }}
+                                                </span>
+                                                <span v-else class="text-slate-500">รอสแกน</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <span v-if="imgItem.extracted" class="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded truncate max-w-[240px]" :title="imgItem.extracted.letterRef + ' | ' + imgItem.extracted.requestor">
+                                            {{ imgItem.extracted.letterRef }} — <b>{{ imgItem.extracted.requestor || 'ไม่ระบุผู้ขอ' }}</b>
+                                        </span>
+                                        <button v-if="!isAiScanning" @click="retrySingleAiScan(qIdx, false)" class="btn btn-outline !py-1 !px-2 text-[10px] text-blue-700" title="สแกนภาพนี้ซ้ำด้วย Flash">
+                                            <i class="fa-solid fa-rotate-right mr-0.5"></i> Flash
+                                        </button>
+                                        <button v-if="!isAiScanning" @click="retrySingleAiScan(qIdx, true)" class="btn btn-outline !py-1 !px-2 text-[10px] text-indigo-700 border-indigo-200 bg-indigo-50/40" title="สแกนละเอียดด้วย Gemini 3.1 Pro เฉพาะภาพที่อ่านยาก">
+                                            <i class="fa-solid fa-microchip mr-0.5"></i> Pro
+                                        </button>
+                                        <button @click="aiQueue.splice(qIdx, 1)" class="text-red-400 hover:text-red-600 p-1"><i class="fa-solid fa-xmark"></i></button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 px-6 py-3 border-t flex justify-end gap-2">
+                        <button type="button" @click="showBatchAiModal = false" class="btn btn-outline text-xs">ปิดหน้าต่าง</button>
+                        <button type="button" @click="applyBatchAiToTable" :disabled="!hasExtractedAiData" class="btn btn-primary text-xs bg-emerald-600 hover:bg-emerald-700">
+                            <i class="fa-solid fa-check mr-1.5"></i> นำผลการสกัดทั้งหมดเข้าตารางรายการ
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =================== MODAL 3: API KEY & MODEL SETTINGS =================== -->
+            <div v-if="showApiKeyModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden p-6">
+                    <div class="flex items-center gap-2.5 mb-4">
+                        <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                            <i class="fa-solid fa-robot text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-base text-slate-800 m-0">ตั้งค่า Gemini API Key & รุ่นโมเดล AI</h3>
+                            <div class="text-xs text-slate-500">รองรับ Gemini 3.0 / 3.1+ และรุ่นใหม่ในอนาคต</div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3.5 mb-5">
+                        <div>
+                            <label class="form-label">Gemini API Key</label>
+                            <input type="password" v-model="tempApiKey" placeholder="AIzaSy..." class="form-input font-mono text-xs">
+                            <small class="text-slate-400 text-[11px] block mt-1">คีย์จะถูกบันทึกไว้ในเบราว์เซอร์เครื่องนี้เท่านั้น</small>
+                        </div>
+
+                        <div>
+                            <label class="form-label">เลือกรุ่นโมเดล AI (Model Version)</label>
+                            <select v-model="selectedAiModelPreset" class="form-input text-xs font-bold text-indigo-900">
+                                <option v-for="m in aiModelPresets" :key="m.id" :value="m.id">{{ m.label }}</option>
+                            </select>
+                        </div>
+
+                        <div v-if="selectedAiModelPreset === 'custom'">
+                            <label class="form-label text-indigo-800">ระบุชื่อรหัสโมเดลรุ่นใหม่ (Custom Model ID)</label>
+                            <input type="text" v-model="customAiModelName" placeholder="เช่น gemini-3.0-flash หรือ gemini-3.5-flash" class="form-input font-mono text-xs font-bold text-indigo-900">
+                            <small class="text-slate-500 text-[11px] block mt-1">หากในอนาคต Google เปิดตัวโมเดลรุ่นใหม่ สามารถพิมพ์ชื่อโมเดลที่นี่ได้ทันที</small>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2">
+                        <button type="button" @click="showApiKeyModal = false" class="btn btn-outline text-xs">ยกเลิก</button>
+                        <button type="button" @click="saveApiKeyAndModel" class="btn btn-primary text-xs">บันทึกการตั้งค่า</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lightbox Overlay -->
+            <div v-if="lightboxImage" @click.self="lightboxImage = null" class="lightbox-overlay">
+                <div class="relative">
+                    <button @click="lightboxImage = null" class="absolute -top-10 right-0 text-white hover:text-red-400 text-3xl z-50"><i class="fa-solid fa-xmark"></i></button>
+                    <img :src="lightboxImage" class="lightbox-img" alt="Enlarged Document">
+                </div>
+            </div>
+        </main>
+
+        <div class="toast-container no-print">
+            <div v-for="(toast, idx) in toasts" :key="idx" class="toast">
+                <i class="fa-solid fa-circle-check text-green-400 mr-1.5"></i> {{ toast }}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    activeTab: 'items',
+                    toasts: [],
+                    lightboxImage: null,
+                    showBatchAiModal: false,
+                    showApiKeyModal: false,
+                    showCoverModal: false,
+                    activeCoverIndex: 0,
+
+                    customApiKey: '',
+                    tempApiKey: '',
+
+                    aiModelPresets: [
+                        { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash Preview (แนะนำ: เสถียรและรองรับผู้ใช้ใหม่ 100%)' },
+                        { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro Preview (ความแม่นยำสูง รุ่นล่าสุด)' },
+                        { id: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash Lite Preview (ความเร็วสูง)' },
+                        { id: 'custom', label: 'กำหนดรหัสโมเดลเอง (สำหรับรุ่นใหม่ในอนาคต)' }
+                    ],
+                    selectedAiModelPreset: 'gemini-3-flash-preview',
+                    customAiModelName: 'gemini-3-flash-preview',
+                    lastWorkingAiModel: '',
+                    discoveredVisionModels: [],
+                    
+                    isAiScanning: false,
+                    batchChunkSize: 4,
+                    aiQueue: [],
+                    aiCooldownSeconds: 0,
+                    aiCooldownReason: '',
+
+                    /* กำหนดให้บันทึกข้อความเป็น 1 หน้าเสมอเมื่อจำนวนบริษัทไม่เกิน 10 หน่วยงาน */
+                    singlePageLimit: 10,
+                    customSplitIndex: 0,
+
+                    coverMargins: {
+                        top: 1.4,
+                        bottom: 1.0,
+                        left: 2.5,
+                        right: 1.8
+                    },
+
+                    assets: {
+                        garudaBase64: ''
+                    },
+                    garudaMeta: { aspectRatio: null },
+                    defaultGarudaUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjY2NjIiBzdHJva2Utd2lkdGg9IjIiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtc2l6ZT0iMTIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5OTkiPtC10LDRgNGD0LTQsDwvdGV4dD48L3N2Zz4=',
+
+                    signerPresets: [
+                        {
+                            label: '1) พ.จ.อ.อำนาจ ใจคำฟู (ผอ.กองบริหารทรัพยากรตาก รักษาราชการแทนฯ)',
+                            heading: 'ผู้อำนวยการกองบริหารทรัพยากรตาก รักษาราชการแทน ผู้อำนวยการสำนักงานบริหาร มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา ตาก ปฏิบัติราชการแทน อธิการบดีมหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา',
+                            signerName: 'พันจ่าเอกอำนาจ ใจคำฟู',
+                            signerRankPrefix: 'พันจ่าเอก',
+                            signerRealName: 'อำนาจ  ใจคำฟู',
+                            signerPosition: 'ผู้อำนวยการกองบริหารทรัพยากรตาก\nรักษาราชการแทน ผู้อำนวยการสำนักงานบริหาร\nมหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา ตาก\nปฏิบัติราชการแทน อธิการบดีมหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา'
+                        },
+                        {
+                            label: '2) ผศ.ทนงศักดิ์ ยาทะเล (ผอ.สำนักงานบริหาร มทร.ล้านนา ตาก)',
+                            heading: 'ผู้อำนวยการสำนักงานบริหารมหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา ตาก',
+                            signerName: 'ผู้ช่วยศาสตราจารย์ทนงศักดิ์ ยาทะเล',
+                            signerRankPrefix: '',
+                            signerRealName: 'ผู้ช่วยศาสตราจารย์ทนงศักดิ์ ยาทะเล',
+                            signerPosition: 'ผู้อำนวยการสำนักงานบริหาร\nมหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา ตาก\nปฏิบัติราชการแทน อธิการบดีมหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา'
+                        },
+                        {
+                            label: '3) ผศ.จตุรงค์ แป้นพงษ์ (ผู้ช่วย ผอ.รักษาราชการแทนฯ)',
+                            heading: 'ผู้อำนวยการสำนักงานบริหารมหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา ตาก',
+                            signerName: 'ผู้ช่วยศาสตราจารย์จตุรงค์ แป้นพงษ์',
+                            signerRankPrefix: '',
+                            signerRealName: 'ผู้ช่วยศาสตราจารย์จตุรงค์ แป้นพงษ์',
+                            signerPosition: 'ผู้ช่วยผู้อำนวยการสำนักงานบริหารมทร.ล้านนา ตาก\nรักษาราชการแทนผู้อำนวยการสำนักงานบริหาร\nมหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา ตาก\nปฏิบัติราชการแทน อธิการบดีมหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา'
+                        }
+                    ],
+                    selectedSignerIndex: 0,
+
+                    submitterPresets: [
+                        { name: 'นายจักรพันธ์ ธงทอง', position: 'อาจารย์สาขาวิศวกรรมโยธาและสิ่งแวดล้อม' },
+                        { name: 'นายจักรพันธ์ ธงทอง', position: 'หัวหน้าสาขาวิศวกรรมโยธาและสิ่งแวดล้อม' },
+                        { name: 'นายภาณุพล เล็กประเสริฐ', position: 'อาจารย์สาขาวิศวกรรมโยธาและสิ่งแวดล้อม' },
+                        { name: 'นางสาวรัชฎาพร ธิสาไชย', position: 'อาจารย์สาขาวิศวกรรมโยธาและสิ่งแวดล้อม' },
+                        { name: 'นายบำรุง บัวชื่น', position: 'อาจารย์ประจำสาขาวิชาวิศวกรรมโยธาและสิ่งแวดล้อม' }
+                    ],
+                    selectedSubmitterIndex: 0,
+
+                    memo: {
+                        department: 'สาขาวิศวกรรมโยธาและสิ่งแวดล้อม คณะวิศวกรรมศาสตร์ มทร.ล้านนา ตาก โทร.๒๒๖',
+                        docPrefix: 'อว.๐๖๕๔.๐๔(๒)/ยส.',
+                        date: '2026-09-16',
+                        subject: 'ขอความอนุเคราะห์ลงนามหนังสือผลทดสอบวัสดุ',
+                        targetSignerHeading: 'ผู้อำนวยการสำนักงานบริหารมหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา ตาก',
+                        signerName: 'พันจ่าเอกอำนาจ ใจคำฟู',
+                        signerRankPrefix: 'พันจ่าเอก',
+                        signerRealName: 'อำนาจ  ใจคำฟู',
+                        signerPosition: 'ผู้อำนวยการกองบริหารทรัพยากรตาก\nรักษาราชการแทน ผู้อำนวยการสำนักงานบริหาร\nมหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา ตาก\nปฏิบัติราชการแทน อธิการบดีมหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา',
+                        submitterName: 'นายจักรพันธ์ ธงทอง',
+                        submitterPosition: 'อาจารย์สาขาวิศวกรรมโยธาและสิ่งแวดล้อม',
+                        closingText: 'จึงเรียนมาเพื่อโปรดพิจารณาอนุเคราะห์'
+                    },
+
+                    memoItems: [],
+
+                    thaiMonths: ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"]
+                };
+            },
+            computed: {
+                garudaSrc() { return this.assets.garudaBase64 || this.defaultGarudaUrl; },
+                activeAiModelId() {
+                    if (this.selectedAiModelPreset === 'custom') {
+                        return (this.customAiModelName || 'gemini-3-flash-preview').trim();
+                    }
+                    return this.selectedAiModelPreset || 'gemini-3-flash-preview';
+                },
+                activeAiModelLabel() {
+                    return this.activeAiModelId.replace('gemini-', '').replace('-preview', '');
+                },
+                activeCoverItem() {
+                    return this.memoItems[this.activeCoverIndex] || null;
+                },
+                hasExtractedAiData() {
+                    return this.aiQueue.some(i => i.extracted !== null);
+                },
+                memoYearBE() {
+                    if (!this.memo.date) return '2569';
+                    const parts = this.memo.date.split('-');
+                    const y = parseInt(parts[0]);
+                    return y < 2500 ? (y + 543).toString() : y.toString();
+                },
+                totalPages() {
+                    return this.memoItems.length > this.singlePageLimit ? 2 : 1;
+                },
+                autoSplitIndex() {
+                    const total = this.memoItems.length;
+                    if (total <= this.singlePageLimit) return total;
+                    return Math.min(18, total - 2);
+                },
+                actualSplitIndex() {
+                    if (this.totalPages === 1) return this.memoItems.length;
+                    if (this.customSplitIndex > 0 && this.customSplitIndex < this.memoItems.length) {
+                        return this.customSplitIndex;
+                    }
+                    return this.autoSplitIndex;
+                },
+                page1Items() {
+                    if (this.totalPages === 1) return this.memoItems;
+                    return this.memoItems.slice(0, this.actualSplitIndex);
+                },
+                page2Items() {
+                    if (this.totalPages === 1) return [];
+                    return this.memoItems.slice(this.actualSplitIndex);
+                },
+                nextItemCatchword() {
+                    if (this.totalPages > 1 && this.page2Items.length > 0) {
+                        const nextNum = this.toThaiNumerals(this.actualSplitIndex + 1);
+                        return `${nextNum}.หนังสือ...`;
+                    }
+                    return '';
+                }
+            },
+            mounted() {
+                this.loadExactSampleData(false);
+
+                const savedAssets = localStorage.getItem('rmutl_lab_assets') || localStorage.getItem('rmutl_lab_steel_assets');
+                if (savedAssets) {
+                    try {
+                        const parsed = JSON.parse(savedAssets);
+                        if (parsed.garudaBase64) this.assets.garudaBase64 = parsed.garudaBase64;
+                    } catch (e) {}
+                }
+                const savedGarudaMeta = localStorage.getItem('garuda_meta');
+                if (savedGarudaMeta) { try { this.garudaMeta = JSON.parse(savedGarudaMeta); } catch(e) {} }
+
+                const savedApiKey = localStorage.getItem('gemini_custom_api_key');
+                if (savedApiKey) {
+                    this.customApiKey = savedApiKey;
+                    this.tempApiKey = savedApiKey;
+                }
+                const savedModelPreset = localStorage.getItem('gemini_model_preset');
+                if (savedModelPreset && !savedModelPreset.includes('2.5') && !savedModelPreset.includes('1.5') && !savedModelPreset.includes('2.0') && !['gemini-3.0-flash', 'gemini-3.0-pro'].includes(savedModelPreset)) {
+                    this.selectedAiModelPreset = savedModelPreset;
+                } else {
+                    this.selectedAiModelPreset = 'gemini-3-flash-preview';
+                    localStorage.setItem('gemini_model_preset', 'gemini-3-flash-preview');
+                }
+                const savedCustomModel = localStorage.getItem('gemini_custom_model_name');
+                if (savedCustomModel && !savedCustomModel.includes('2.5') && !savedCustomModel.includes('1.5') && !savedCustomModel.includes('2.0')) {
+                    this.customAiModelName = savedCustomModel;
+                } else {
+                    this.customAiModelName = 'gemini-3-flash-preview';
+                    localStorage.setItem('gemini_custom_model_name', 'gemini-3-flash-preview');
+                }
+                const savedWorkingModel = localStorage.getItem('gemini_last_working_model');
+                if (savedWorkingModel && !savedWorkingModel.includes('2.5') && !savedWorkingModel.includes('1.5') && !savedWorkingModel.includes('2.0')) {
+                    this.lastWorkingAiModel = savedWorkingModel;
+                } else {
+                    this.lastWorkingAiModel = '';
+                    localStorage.removeItem('gemini_last_working_model');
+                }
+
+                const savedState = localStorage.getItem('rmutl_civil_exact_memo_state_v5');
+                if (savedState) {
+                    try {
+                        const parsed = JSON.parse(savedState);
+                        if (parsed.memo) {
+                            this.memo = { ...this.memo, ...parsed.memo };
+                            if (this.memo.signerRealName && this.memo.signerRealName.includes('จตุรงค์')) {
+                                this.memo.signerPosition = this.signerPresets[2].signerPosition;
+                            }
+                        }
+                        if (parsed.memoItems && parsed.memoItems.length > 0) {
+                            this.memoItems = parsed.memoItems.map(item => this.normalizeItem(item));
+                        }
+                        if (parsed.coverMargins) this.coverMargins = { ...this.coverMargins, ...parsed.coverMargins };
+                        if (parsed.selectedSignerIndex !== undefined) this.selectedSignerIndex = parsed.selectedSignerIndex;
+                        if (parsed.selectedSubmitterIndex !== undefined) this.selectedSubmitterIndex = parsed.selectedSubmitterIndex;
+                        if (parsed.customSplitIndex !== undefined) this.customSplitIndex = parsed.customSplitIndex;
+                    } catch (e) {}
+                }
+            },
+            methods: {
+                cleanText(val) { return (!val || val === 'null' || val === 'undefined') ? '' : val.toString().trim(); },
+                showToast(msg) { this.toasts.push(msg); setTimeout(() => { this.toasts.shift(); }, 2800); },
+
+                safeExtractJsonString(rawText) {
+                    const txt = (rawText || '').trim();
+                    const firstBracket = txt.indexOf('[');
+                    const lastBracket = txt.lastIndexOf(']');
+                    const firstBrace = txt.indexOf('{');
+                    const lastBrace = txt.lastIndexOf('}');
+
+                    if (firstBracket !== -1 && lastBracket !== -1 && (firstBrace === -1 || firstBracket < firstBrace)) {
+                        return txt.substring(firstBracket, lastBracket + 1);
+                    }
+                    if (firstBrace !== -1 && lastBrace !== -1) {
+                        return txt.substring(firstBrace, lastBrace + 1);
+                    }
+                    return txt;
+                },
+
+                sanitizeActionPrefix(raw) {
+                    const txt = this.cleanText(raw);
+                    if (!txt) return 'ทดสอบคุณภาพวัสดุ';
+                    const allowed = [
+                        'ทดสอบคุณภาพวัสดุงานก่อสร้าง',
+                        'ทดสอบคุณภาพวัสดุก่อสร้าง',
+                        'ทดสอบคุณสมบัติของวัสดุก่อสร้าง',
+                        'ทดสอบคุณสมบัติของก้อนตัวอย่างคอนกรีต',
+                        'ทดสอบความต้านทานแรงอัดแท่งคอนกรีตทรงกระบอก',
+                        'ทดสอบกำลังอัดตัวอย่างแท่งคอนกรีตรูปทรงลูกบาศก์',
+                        'ทดสอบค่าความหนาแน่นของชั้นดิน',
+                        'ทดสอบเจาะสำรวจชั้นดิน (Boring Test)',
+                        'สอบเทียบเครื่อง (Calibration) ทดสอบกำลังแรงอัดของตัวอย่างคอนกรีต',
+                        'ทดสอบกำลังดึงของวัสดุ',
+                        'ทดสอบกำลังของวัสดุ',
+                        'ทดสอบคุณสมบัติของวัสดุ',
+                        'ทดสอบวัสดุก่อสร้าง',
+                        'ทดสอบคุณภาพวัสดุ'
+                    ];
+                    for (const item of allowed) {
+                        if (txt.includes(item)) return item;
+                    }
+                    if (txt.includes('ดึง')) return 'ทดสอบกำลังดึงของวัสดุ';
+                    if (txt.includes('ความหนาแน่น') || txt.includes('ชั้นดิน')) return 'ทดสอบค่าความหนาแน่นของชั้นดิน';
+                    if (txt.includes('เจาะสำรวจ') || txt.includes('Boring')) return 'ทดสอบเจาะสำรวจชั้นดิน (Boring Test)';
+                    if (txt.includes('สอบเทียบ') || txt.includes('Calibration')) return 'สอบเทียบเครื่อง (Calibration) ทดสอบกำลังแรงอัดของตัวอย่างคอนกรีต';
+                    if (txt.includes('ทรงกระบอก')) return 'ทดสอบความต้านทานแรงอัดแท่งคอนกรีตทรงกระบอก';
+                    if (txt.includes('กำลังอัด')) return 'ทดสอบกำลังอัดตัวอย่างแท่งคอนกรีตรูปทรงลูกบาศก์';
+                    if (txt.includes('กำลัง')) return 'ทดสอบกำลังของวัสดุ';
+                    if (txt.includes('คุณสมบัติ')) return 'ทดสอบคุณสมบัติของวัสดุ';
+                    return 'ทดสอบคุณภาพวัสดุ';
+                },
+
+                sanitizeRequestorName(rawRequestor, fallbackRecipient = '', fallbackProject = '') {
+                    let req = this.cleanText(rawRequestor);
+                    req = req.replace(/^(ที่ทำการ|สำนักงานเทศบาล|สำนักงาน)/g, (match) => {
+                        if (match === 'สำนักงานเทศบาล') return 'เทศบาล';
+                        return '';
+                    }).trim();
+
+                    if (req.includes('มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา')) {
+                        req = '';
+                    }
+
+                    if (!req && fallbackRecipient) {
+                        let rec = this.cleanText(fallbackRecipient);
+                        if (rec.startsWith('นายกองค์การบริหารส่วน')) {
+                            req = rec.replace(/^นายก/, '').trim();
+                        } else if (rec.startsWith('นายกเทศมนตรี')) {
+                            req = 'เทศบาล' + rec.replace(/^นายกเทศมนตรี/, '').trim();
+                        } else if (rec.startsWith('นายอำเภอ')) {
+                            req = 'ที่ว่าการอำเภอ' + rec.replace(/^นายอำเภอ/, '').trim();
+                        } else if (rec.startsWith('หุ้นส่วนผู้จัดการ')) {
+                            req = rec.replace(/^หุ้นส่วนผู้จัดการ/, '').trim();
+                        } else if (rec.startsWith('กรรมการผู้จัดการ')) {
+                            req = rec.replace(/^กรรมการผู้จัดการ/, '').trim();
+                        }
+                    }
+
+                    if (!req && fallbackProject) {
+                        const m = fallbackProject.match(/(องค์การบริหารส่วนตำบล[^\s]+|องค์การบริหารส่วนจังหวัด[^\s]+|เทศบาลตำบล[^\s]+|เทศบาลเมือง[^\s]+|บริษัท\s+[^\s]+\s+จำกัด|ห้างหุ้นส่วน[^\s]+)/);
+                        if (m) req = m[1].trim();
+                    }
+
+                    return req;
+                },
+
+                sanitizeTestMaterial(raw) {
+                    let txt = this.cleanText(raw).replace(/^\(|\)$/g, '').trim();
+                    if (!txt) return '';
+                    if (txt.length > 28 || txt.includes('โครงการ') || txt.includes('ก่อสร้าง') || txt.includes('ขนาด')) {
+                        if (txt.includes('เหล็กเสริมคอนกรีต')) return 'ตัวอย่างเหล็กเสริมคอนกรีต';
+                        if (txt.includes('เหล็กเส้น')) return 'ตัวอย่างเหล็กเส้น';
+                        if (txt.includes('เหล็กเสริม')) return 'ตัวอย่างเหล็กเสริม';
+                        if (txt.includes('เหล็ก')) return 'ตัวอย่างเหล็กเสริม';
+                        if (txt.includes('แท่งลูกบาศก์คอนกรีต')) return 'ตัวอย่างแท่งลูกบาศก์คอนกรีต';
+                        if (txt.includes('ลูกบาศก์คอนกรีต')) return 'ตัวอย่างลูกบาศก์คอนกรีต';
+                        if (txt.includes('ลูกปูนรูปทรงลูกบาศก์')) return 'ตัวอย่างลูกปูนรูปทรงลูกบาศก์';
+                        if (txt.includes('ลูกปูนรูปลูกบาศก์')) return 'ตัวอย่างลูกปูนรูปลูกบาศก์';
+                        if (txt.includes('ลูกปูน')) return 'ตัวอย่างลูกปูน';
+                        if (txt.includes('แท่งคอนกรีต')) return 'ตัวอย่างแท่งคอนกรีต';
+                        if (txt.includes('คอนกรีต')) return 'ตัวอย่างคอนกรีต';
+                        return '';
+                    }
+                    return txt;
+                },
+
+                normalizeItem(item = {}) {
+                    const req = this.sanitizeRequestorName(item.requestor, item.recipientTitle, item.project);
+                    return {
+                        letterRef: item.letterRef || '',
+                        letterDateText: item.letterDateText || '',
+                        requestor: req,
+                        recipientTitle: item.recipientTitle || this.formatCoverRecipient(req),
+                        docNo: item.docNo || 'อว 0654.11/',
+                        reportDate: item.reportDate || this.memo.date || '2026-09-16',
+                        testActionPrefix: this.sanitizeActionPrefix(item.testActionPrefix),
+                        testMaterial: item.testMaterial !== undefined ? this.sanitizeTestMaterial(item.testMaterial) : 'ตัวอย่างเหล็กเสริม',
+                        project: item.project || '',
+                        location: item.location || '',
+                        contractNo: item.contractNo || '',
+                        contractDate: item.contractDate || '',
+                        reportPages: Number(item.reportPages) || 1,
+                        reportUnit: item.reportUnit || 'แผ่น'
+                    };
+                },
+
+                onRequestorChange(item) {
+                    item.recipientTitle = this.formatCoverRecipient(item.requestor);
+                    this.saveState();
+                },
+
+                resetCoverMargins() {
+                    this.coverMargins = { top: 1.4, bottom: 1.0, left: 2.5, right: 1.8 };
+                    this.saveState();
+                    this.showToast('คืนค่าระยะขอบกระดาษมาตรฐานแล้ว');
+                },
+
+                saveApiKeyAndModel() {
+                    this.customApiKey = (this.tempApiKey || '').trim();
+                    localStorage.setItem('gemini_custom_api_key', this.customApiKey);
+                    localStorage.setItem('gemini_model_preset', this.selectedAiModelPreset);
+                    localStorage.setItem('gemini_custom_model_name', this.customAiModelName);
+                    this.showApiKeyModal = false;
+                    this.showToast(`บันทึกการตั้งค่า AI (${this.activeAiModelId}) เรียบร้อย`);
+                },
+
+                saveState() {
+                    localStorage.setItem('rmutl_civil_exact_memo_state_v5', JSON.stringify({
+                        memo: this.memo,
+                        memoItems: this.memoItems,
+                        coverMargins: this.coverMargins,
+                        selectedSignerIndex: this.selectedSignerIndex,
+                        selectedSubmitterIndex: this.selectedSubmitterIndex,
+                        customSplitIndex: this.customSplitIndex
+                    }));
+                },
+
+                openCoverModal(index) {
+                    this.activeCoverIndex = index;
+                    const item = this.memoItems[index];
+                    if (!item.reportDate) item.reportDate = this.memo.date;
+                    if (!item.recipientTitle) item.recipientTitle = this.formatCoverRecipient(item.requestor);
+                    this.showCoverModal = true;
+                },
+
+                applySignerPreset() {
+                    const p = this.signerPresets[this.selectedSignerIndex];
+                    if (p) {
+                        this.memo.targetSignerHeading = p.heading;
+                        this.memo.signerName = p.signerName;
+                        this.memo.signerRankPrefix = p.signerRankPrefix || '';
+                        this.memo.signerRealName = p.signerRealName || p.signerName;
+                        this.memo.signerPosition = p.signerPosition;
+                    }
+                    this.saveState();
+                    this.showToast(`ซิงก์ผู้ลงนาม: ${p.signerName}`);
+                },
+
+                applySubmitterPreset() {
+                    const sub = this.submitterPresets[this.selectedSubmitterIndex];
+                    if (sub) {
+                        this.memo.submitterName = sub.name;
+                        this.memo.submitterPosition = sub.position;
+                    }
+                    this.saveState();
+                    this.showToast(`เลือกผู้เสนอเรื่อง: ${sub.name}`);
+                },
+
+                formatLetterRef(item) {
+                    let ref = this.cleanText(item ? item.letterRef : '');
+                    if (!ref) return 'หนังสือที่........................................................';
+                    if (!ref.startsWith('หนังสือ')) {
+                        ref = `หนังสือที่ ${ref}`;
+                    }
+                    return this.toThaiNumerals(ref);
+                },
+
+                addNewItem() {
+                    this.memoItems.push(this.normalizeItem({
+                        letterRef: 'หนังสือที่ ',
+                        letterDateText: '',
+                        requestor: '',
+                        docNo: 'อว 0654.11/',
+                        reportDate: this.memo.date,
+                        testActionPrefix: 'ทดสอบคุณภาพวัสดุ',
+                        testMaterial: 'ตัวอย่างเหล็กเสริม',
+                        reportPages: 1,
+                        reportUnit: 'แผ่น'
+                    }));
+                    this.saveState();
+                    this.showToast('เพิ่มรายการหนังสือใหม่แล้ว');
+                },
+
+                removeItem(idx) {
+                    this.memoItems.splice(idx, 1);
+                    this.saveState();
+                },
+
+                loadExactSampleData(notify = true) {
+                    this.memo.date = '2026-09-16';
+                    this.memo.submitterName = 'นายจักรพันธ์ ธงทอง';
+                    this.memo.submitterPosition = 'อาจารย์สาขาวิศวกรรมโยธาและสิ่งแวดล้อม';
+                    this.selectedSubmitterIndex = 0;
+                    this.customSplitIndex = 0;
+                    const raw = [
+                        {
+                            letterRef: 'หนังสือที่ สท ๗๖๐๐๓/๕๙๕',
+                            letterDateText: '11 กันยายน 2569',
+                            requestor: 'องค์การบริหารส่วนตำบลท่าทอง',
+                            recipientTitle: 'นายกองค์การบริหารส่วนตำบลท่าทอง',
+                            docNo: 'อว 0654.11/2795',
+                            testActionPrefix: 'ทดสอบคุณภาพวัสดุ',
+                            testMaterial: 'ตัวอย่างเหล็กเสริม',
+                            project: 'โครงการปรับปรุงถนนคอนกรีตเสริมเหล็ก สายริมน้ำยม หน้าบ้านนางมาลา คงคีรี ถึงบ้านนายสุวิทย์ มีสวน',
+                            location: 'หมู่ที่ 6 ตำบลท่าทอง อำเภอสวรรคโลก จังหวัดสุโขทัย',
+                            contractNo: '16/2569',
+                            contractDate: '7 เมษายน 2569',
+                            reportPages: 4
+                        },
+                        {
+                            letterRef: 'หนังสือที่ สท ๗๖๐๐๓/๕๙๗',
+                            letterDateText: '14 กันยายน 2569',
+                            requestor: 'องค์การบริหารส่วนตำบลท่าทอง',
+                            recipientTitle: 'นายกองค์การบริหารส่วนตำบลท่าทอง',
+                            docNo: 'อว 0654.11/2796',
+                            testActionPrefix: 'ทดสอบคุณภาพวัสดุ',
+                            testMaterial: 'ตัวอย่างแท่งคอนกรีต',
+                            project: 'โครงการปรับปรุงต่อเติมพนังกันน้ำพร้อมเสริมระดับพนังกันน้ำ ช่วงศาลาอเนกประสงค์หมู่ที่ 7 STA.0+000 ถึง สะพานคอนกรีตเสริมเหล็ก ข้ามวัดหนองโว้ง STA.0+573.11',
+                            location: 'หมู่ที่ 7 ตำบลท่าทอง อำเภอสวรรคโลก จังหวัดสุโขทัย',
+                            contractNo: '14/2569',
+                            contractDate: '27 กรกฎาคม 2569',
+                            reportPages: 1
+                        },
+                        {
+                            letterRef: 'หนังสือลงวันที่ ๑๑ กันยายน ๒๕๖๙',
+                            letterDateText: '11 กันยายน 2569',
+                            requestor: 'ห้างหุ้นส่วนสามัญนิติบุคคล เค.ดี.บี. การโยธา',
+                            recipientTitle: 'หุ้นส่วนผู้จัดการ ห้างหุ้นส่วนสามัญนิติบุคคล เค.ดี.บี. การโยธา',
+                            docNo: 'อว 0654.11/2797',
+                            testActionPrefix: 'ทดสอบกำลังของวัสดุ',
+                            testMaterial: 'ตัวอย่างลูกบาศก์คอนกรีต',
+                            project: 'โครงการปรับปรุงพื้นผิวจราจรคอนกรีตเสริมเหล็กรอบอาคารสำนักงานอัยการจังหวัดสวรรคโลก ตำบลเมืองสวรรคโลก อำเภอสวรรคโลก จังหวัดสุโขทัย',
+                            location: '',
+                            contractNo: '11/2569',
+                            contractDate: '29 มิถุนายน 2569',
+                            reportPages: 1
+                        },
+                        {
+                            letterRef: 'หนังสือที่ ตก ๗๒๖๐๓/๔๑๒',
+                            letterDateText: '4 กันยายน 2569',
+                            requestor: 'องค์การบริหารส่วนตำบลไทยชนะศึก',
+                            recipientTitle: 'นายกองค์การบริหารส่วนตำบลไทยชนะศึก',
+                            docNo: 'อว 0654.11/2798',
+                            testActionPrefix: 'ทดสอบคุณภาพวัสดุ',
+                            testMaterial: 'ตัวอย่างแท่งคอนกรีต',
+                            project: 'โครงการก่อสร้างรางระบายน้ำคอนกรีตเสริมเหล็กรูปตัวยูหน้าบ้านนายประเสริฐ วงศ์สีใส ถึงหน้าบ้านนายสุรศักดิ์ คำมาวงศ์',
+                            location: 'หมู่ที่ 3 บ้านคลองสำราญ ตำบลไทยชนะศึก อำเภอทุ่งเสลี่ยม จังหวัดสุโขทัย',
+                            contractNo: '16/2569',
+                            contractDate: '23 กรกฎาคม 2569',
+                            reportPages: 1
+                        },
+                        {
+                            letterRef: 'หนังสือที่ สท ๗๓๖๐๓/๖๓๐',
+                            letterDateText: '14 กันยายน 2569',
+                            requestor: 'องค์การบริหารส่วนตำบลบ้านหลุม',
+                            recipientTitle: 'นายกองค์การบริหารส่วนตำบลบ้านหลุม',
+                            docNo: 'อว 0654.11/2799',
+                            testActionPrefix: 'ทดสอบคุณภาพวัสดุ',
+                            testMaterial: 'ตัวอย่างเหล็กเส้น',
+                            project: 'โครงการก่อสร้างถนนคอนกรีตเสริมเหล็ก คันคลองมาบโพธิ์',
+                            location: 'หมู่ที่ 8 ตำบลบ้านหลุม อำเภอเมืองสุโขทัย จังหวัดสุโขทัย',
+                            contractNo: '24/2569',
+                            contractDate: '11 กันยายน 2569',
+                            reportPages: 4
+                        },
+                        {
+                            letterRef: 'หนังสือที่ สท ๗๓๖๐๓/๖๒๗',
+                            letterDateText: '14 กันยายน 2569',
+                            requestor: 'องค์การบริหารส่วนตำบลบ้านหลุม',
+                            recipientTitle: 'นายกองค์การบริหารส่วนตำบลบ้านหลุม',
+                            docNo: 'อว 0654.11/2800',
+                            testActionPrefix: 'ทดสอบคุณภาพวัสดุ',
+                            testMaterial: 'ตัวอย่างเหล็กเส้น',
+                            project: 'โครงการก่อสร้างถนนคอนกรีตเสริมเหล็ก สายเด่นเกลี้ยง',
+                            location: 'หมู่ที่ 1 ตำบลบ้านหลุม อำเภอเมืองสุโขทัย จังหวัดสุโขทัย',
+                            contractNo: '23/2569',
+                            contractDate: '11 กันยายน 2569',
+                            reportPages: 4
+                        },
+                        {
+                            letterRef: 'หนังสือที่ ตก ๗๑๖๐๑/๑๙๑',
+                            letterDateText: '28 สิงหาคม 2569',
+                            requestor: 'องค์การบริหารส่วนตำบลสามเงา',
+                            recipientTitle: 'นายกองค์การบริหารส่วนตำบลสามเงา',
+                            docNo: 'อว 0654.11/2801',
+                            testActionPrefix: 'ทดสอบคุณภาพวัสดุ',
+                            testMaterial: 'ตัวอย่างลูกปูน',
+                            project: 'โครงการก่อสร้างถนนคอนกรีตเสริมเหล็กบ้านป่ายางใต้ ขนาดกว้าง 3.00 เมตร ยาว 300.00 เมตร หนา 0.15 เมตร หรือมีพื้นที่ไม่น้อยกว่า 900.00 ตารางเมตร',
+                            location: 'หมู่ที่ 1 บ้านป่ายางใต้ ตำบลสามเงา อำเภอสามเงา จังหวัดตาก',
+                            contractNo: '6/2569',
+                            contractDate: '1 กรกฎาคม 2569',
+                            reportPages: 1
+                        },
+                        {
+                            letterRef: 'หนังสือที่ ตก ๗๔๖๐๕/๔๙๒',
+                            letterDateText: '8 กันยายน 2569',
+                            requestor: 'องค์การบริหารส่วนตำบลโมโกร',
+                            recipientTitle: 'นายกองค์การบริหารส่วนตำบลโมโกร',
+                            docNo: 'อว 0654.11/2802',
+                            testActionPrefix: 'ทดสอบคุณภาพวัสดุ',
+                            testMaterial: 'ตัวอย่างเหล็กเสริมคอนกรีต',
+                            project: 'โครงการก่อสร้างอาคารอเนกประสงค์ ขนาดเล็ก มีชั้นลอย แบบไม่ตอกเสาเข็ม',
+                            location: 'โรงเรียนตำรวจตระเวนชายแดนบ้านแม่กลองใหญ่ องค์การบริหารส่วนตำบลโมโกร อำเภออุ้มผาง จังหวัดตาก',
+                            contractNo: 'E2/2569',
+                            contractDate: '28 มกราคม 2569',
+                            reportPages: 5
+                        }
+                    ];
+                    this.memoItems = raw.map(r => this.normalizeItem(r));
+                    this.saveState();
+                    if (notify) this.showToast('โหลดข้อมูลตัวอย่าง 8 ฉบับ (ตามไฟล์ .docx ต้นฉบับ) เรียบร้อย');
+                },
+
+                loadSample10Data() {
+                    this.loadExactSampleData(false);
+                    const extra2 = [
+                        { letterRef: 'หนังสือที่ ตก ๗๑๑๐๑/๑๔๒๒', letterDateText: '14 กันยายน 2569', requestor: 'องค์การบริหารส่วนตำบลน้ำรึม', docNo: 'อว 0654.11/2803', testMaterial: 'ตัวอย่างแท่งลูกบาศก์คอนกรีต', project: 'โครงการปรับปรุงถนนคอนกรีตเสริมเหล็ก (ซอย 1 ประชาสรรค์)', location: 'หมู่ที่ 11 บ้านประชาสรรค์ ตำบลน้ำรึม อำเภอเมืองตาก จังหวัดตาก', contractNo: '93/2569', contractDate: '15 กรกฎาคม 2569', reportPages: 1 },
+                        { letterRef: 'หนังสือที่ ตก ๗๑๑๐๑/๑๔๒๓', letterDateText: '14 กันยายน 2569', requestor: 'องค์การบริหารส่วนตำบลน้ำรึม', docNo: 'อว 0654.11/2804', testMaterial: 'ตัวอย่างแท่งลูกบาศก์คอนกรีต', project: 'โครงการก่อสร้างถนนคอนกรีตเสริมเหล็ก (ซอยฟาร์มหมูนายแขก)', location: 'หมู่ที่ 1 บ้านคลองสัก ตำบลน้ำรึม อำเภอเมืองตาก จังหวัดตาก', contractNo: '100/2569', contractDate: '22 กรกฎาคม 2569', reportPages: 1 }
+                    ];
+                    extra2.forEach(r => this.memoItems.push(this.normalizeItem(r)));
+                    this.saveState();
+                    this.showToast('โหลดข้อมูลตัวอย่าง 10 ฉบับ (แสดงใน 1 หน้าพอดี) เรียบร้อย');
+                },
+
+                loadSample20Data() {
+                    this.memo.date = '2026-07-08';
+                    this.memo.submitterName = 'นายจักรพันธ์ ธงทอง';
+                    this.memo.submitterPosition = 'หัวหน้าสาขาวิศวกรรมโยธาและสิ่งแวดล้อม';
+                    this.selectedSubmitterIndex = 1;
+                    this.customSplitIndex = 0;
+                    const raw20 = [
+                        { letterRef: 'หนังสือที่ ตก ๗๔๐๐๑/๔๑๕', requestor: 'องค์การบริหารส่วนตำบลแม่ต้าน' },
+                        { letterRef: 'หนังสือที่ ศธ ๐๔๐๕๖.๐๒๐๗/๒๐๐', requestor: 'โรงเรียนบ้านแม่ระมาดน้อย' },
+                        { letterRef: 'หนังสือที่ ตก ๗๔๗๐๑.๐๕/๕๒๐', requestor: 'องค์การบริหารส่วนตำบลยกกระบัตร' },
+                        { letterRef: 'หนังสือที่ ตก ๗๔๗๐๑.๐๕/๕๒๔', requestor: 'องค์การบริหารส่วนตำบลยกกระบัตร' },
+                        { letterRef: 'หนังสือที่ ตก ๗๔๗๐๑.๐๕/๕๐๙', requestor: 'องค์การบริหารส่วนตำบลยกกระบัตร' },
+                        { letterRef: 'หนังสือที่ ตก ๗๔๗๐๑.๐๕/๕๑๙', requestor: 'องค์การบริหารส่วนตำบลยกกระบัตร' },
+                        { letterRef: 'หนังสือที่ ตก ๗๔๗๐๑.๐๕/๕๒๖', requestor: 'องค์การบริหารส่วนตำบลยกกระบัตร' },
+                        { letterRef: 'หนังสือที่ ตก ๗๓๗๐๑.๓/๕๓๗', requestor: 'องค์การบริหารส่วนตำบลแม่กาษา' },
+                        { letterRef: 'หนังสือที่ ตก ๗๑๐๐๑/๖๔๔', requestor: 'องค์การบริหารส่วนตำบลช่องแคบ' },
+                        { letterRef: 'หนังสือที่ ตก ๗๖๑๐๓/๕๕๑', requestor: 'องค์การบริหารส่วนตำบลแม่ระมาด' },
+                        { letterRef: 'หนังสือลงวันที่ ๔ กรกฎาคม ๒๕๖๙', requestor: 'กิจการค้าร่วม อาร์เน็กซ์' },
+                        { letterRef: 'หนังสือที่ No.JRW-BBP-L-๒๕-๐๘๔', requestor: 'บริษัท ดับเบิลยูแอลซี คอนกรีโต้ จำกัด' },
+                        { letterRef: 'หนังสือที่ ๐๓๘/๒๕๖๙', requestor: 'ห้างหุ้นส่วนจำกัด เจพีแอล คอนสตรัคชั่น (๒๐๑๕)' },
+                        { letterRef: 'หนังสือที่ ๐๓๗/๒๕๖๙', requestor: 'ห้างหุ้นส่วนจำกัด เจพีแอล คอนสตรัคชั่น (๒๐๑๕)' },
+                        { letterRef: 'หนังสือที่ ตก ๗๔๙๐๓/๗๗๘', requestor: 'องค์การบริหารส่วนตำบลวังหิน' },
+                        { letterRef: 'หนังสือที่ สท ๗๓๖๐๓/๔๓๔', requestor: 'องค์การบริหารส่วนตำบลบ้านหลุม' },
+                        { letterRef: 'หนังสือที่ สท ๗๓๕๐๓/๕๕๓', requestor: 'องค์การบริหารส่วนตำบลบ้านสวน' },
+                        { letterRef: 'หนังสือที่ สท ๗๓๕๐๓/๕๖๗', requestor: 'องค์การบริหารส่วนตำบลบ้านสวน' },
+                        { letterRef: 'หนังสือที่ สท ๗๓๕๐๓/๕๕๘', requestor: 'องค์การบริหารส่วนตำบลบ้านสวน' },
+                        { letterRef: 'หนังสือที่ สท ๗๓๕๐๓/๕๖๖', requestor: 'องค์การบริหารส่วนตำบลบ้านสวน' }
+                    ];
+                    this.memoItems = raw20.map((r, i) => this.normalizeItem({ ...r, docNo: `อว 0654.11/${2601 + i}`, reportDate: '2026-07-08' }));
+                    this.saveState();
+                    this.showToast('โหลดข้อมูลตัวอย่าง 20 ฉบับ (2 หน้า: หน้าแรก 18 + หน้าสอง 2 ตามภาพตัวอย่าง) เรียบร้อย');
+                },
+
+                loadSample16Data() {
+                    this.loadExactSampleData(false);
+                    const extra = [
+                        { letterRef: 'หนังสือที่ ตก ๗๑๑๐๑/๑๔๒๒', letterDateText: '14 กันยายน 2569', requestor: 'องค์การบริหารส่วนตำบลน้ำรึม', docNo: 'อว 0654.11/2803', testMaterial: 'ตัวอย่างแท่งลูกบาศก์คอนกรีต', project: 'โครงการปรับปรุงถนนคอนกรีตเสริมเหล็ก (ซอย 1 ประชาสรรค์ สามแยกหน้าบ้านพสุ ถึง บ้านนายจำลอง)', location: 'หมู่ที่ 11 บ้านประชาสรรค์ ตำบลน้ำรึม อำเภอเมืองตาก จังหวัดตาก', contractNo: '93/2569', contractDate: '15 กรกฎาคม 2569', reportPages: 1 },
+                        { letterRef: 'หนังสือที่ ตก ๗๑๑๐๑/๑๔๒๓', letterDateText: '14 กันยายน 2569', requestor: 'องค์การบริหารส่วนตำบลน้ำรึม', docNo: 'อว 0654.11/2804', testMaterial: 'ตัวอย่างแท่งลูกบาศก์คอนกรีต', project: 'โครงการก่อสร้างถนนคอนกรีตเสริมเหล็ก (ซอยฟาร์มหมูนายแขกถึงบ้านลุงดี)', location: 'หมู่ที่ 1 บ้านคลองสัก ตำบลน้ำรึม อำเภอเมืองตาก จังหวัดตาก', contractNo: '100/2569', contractDate: '22 กรกฎาคม 2569', reportPages: 1 },
+                        { letterRef: 'หนังสือที่ ตก ๗๔๙๐๓/๑๑๙๑', letterDateText: '14 กันยายน 2569', requestor: 'องค์การบริหารส่วนตำบลวังหิน', docNo: 'อว 0654.11/2805', testMaterial: 'ตัวอย่างลูกปูนรูปลูกบาศก์', project: 'โครงการก่อสร้างถนนคอนกรีตเสริมเหล็ก ซอยบ้านดาบกมล', location: 'หมู่ที่ 9 บ้านลานขวาง ตำบลวังหิน อำเภอเมืองตาก จังหวัดตาก', contractNo: '119/2569', contractDate: '7 สิงหาคม 2569', reportPages: 1 },
+                        { letterRef: 'หนังสือที่ ตก ๗๔๙๐๓/๑๑๘๘', letterDateText: '11 กันยายน 2569', requestor: 'องค์การบริหารส่วนตำบลวังหิน', docNo: 'อว 0654.11/2806', testMaterial: 'ตัวอย่างลูกปูนรูปลูกบาศก์', project: 'โครงการก่อสร้างถนนคอนกรีตเสริมเหล็ก ซอยบ้านอาจารย์กานต์', location: 'หมู่ที่ 9 บ้านลานขวาง ตำบลวังหิน อำเภอเมืองตาก จังหวัดตาก', contractNo: '120/2569', contractDate: '7 สิงหาคม 2569', reportPages: 1 },
+                        { letterRef: 'หนังสือที่ ตก ๗๔๗๐๑.๐๕/๖๕๔', letterDateText: '3 สิงหาคม 2569', requestor: 'องค์การบริหารส่วนตำบลยกกระบัตร', docNo: 'อว 0654.11/2807', testMaterial: 'ตัวอย่างลูกปูน', project: 'โครงการก่อสร้างถนนคอนกรีตเสริมเหล็ก ซอยทุ่งนา สายป่าช้า', location: 'หมู่ที่ 5 บ้านแม่ระวาน ตำบลยกกระบัตร อำเภอสามเงา จังหวัดตาก', contractNo: '021/2569', contractDate: '23 กรกฎาคม 2569', reportPages: 1 },
+                        { letterRef: 'หนังสือที่ ตก ๕๒๕๐๓/๓๖๗', letterDateText: '24 สิงหาคม 2569', requestor: 'เทศบาลตำบลแม่ระมาด', docNo: 'อว 0654.11/2808', testMaterial: '', project: 'โครงการก่อสร้างพนังกันตลิ่งคอนกรีตเสริมเหล็ก บริเวณลำห้วยแม่ระมาด', location: 'หมู่ที่ 2 ตำบลแม่ระมาด อำเภอแม่ระมาด จังหวัดตาก', contractNo: '11/2569', contractDate: '1 กรกฎาคม 2569', reportPages: 1 },
+                        { letterRef: 'หนังสือที่ ตก ๕๒๓๐๑/๖๕๖', letterDateText: '26 สิงหาคม 2569', requestor: 'เทศบาลตำบลสามเงา', docNo: 'อว 0654.11/2809', testActionPrefix: 'ทดสอบคุณภาพวัสดุงานก่อสร้าง', testMaterial: '', project: 'โครงการก่อสร้างลานคอนกรีตเสริมเหล็ก (บริเวณตลาดเทศบาล 1)', location: 'หมู่ที่ 4 บ้านจัดสรร ตำบลสามเงา อำเภอสามเงา จังหวัดตาก', contractNo: '7/2569', contractDate: '5 สิงหาคม 2569', reportPages: 1 },
+                        { letterRef: 'หนังสือที่ สท ๗๓๗๐๓/๗๒๕', letterDateText: '15 กันยายน 2569', requestor: 'องค์การบริหารส่วนตำบลบ้านใหม่ไชยมงคล', docNo: 'อว 0654.11/2736', testActionPrefix: 'ทดสอบกำลังดึงของวัสดุ', testMaterial: 'ตัวอย่างเหล็กเสริม', project: 'โครงการก่อสร้างถนนคอนกรีตเสริมเหล็ก ซ.2', location: 'หมู่ที่ 4 ตำบลบ้านใหม่ไชยมงคล อำเภอทุ่งเสลี่ยม จังหวัดสุโขทัย', contractNo: '100/2569', contractDate: '7 กันยายน 2569', reportPages: 3 }
+                    ];
+                    extra.forEach(r => this.memoItems.push(this.normalizeItem(r)));
+                    this.saveState();
+                    this.showToast('โหลดข้อมูลตัวอย่าง 16 ฉบับ (2 หน้า: 12 + 4) เรียบร้อย');
+                },
+
+                loadSample23Data() {
+                    this.memo.date = '2026-03-30';
+                    this.memo.submitterName = 'นายบำรุง บัวชื่น';
+                    this.memo.submitterPosition = 'อาจารย์ประจำสาขาวิชาวิศวกรรมโยธาและสิ่งแวดล้อม';
+                    this.selectedSubmitterIndex = 3;
+                    this.customSplitIndex = 0;
+                    const raw = [
+                        { letterRef: 'หนังสือลงวันที่ ๗ กุมภาพันธ์ ๒๕๖๙', requestor: 'ห้างหุ้นส่วนจำกัด ใต้ฝุ่นวิศวกรรม' },
+                        { letterRef: 'หนังสือลงวันที่ ๑๗ กุมภาพันธ์ ๒๕๖๙', requestor: 'ห้างหุ้นส่วนจำกัด ใต้ฝุ่นวิศวกรรม' },
+                        { letterRef: 'หนังสือที่ ตก ๕๓๑๐๓/๑๓๐', requestor: 'เทศบาลตำบลแม่จะเรา' },
+                        { letterRef: 'หนังสือที่ ตก ๕๓๑๐๓/๑๒๙', requestor: 'เทศบาลตำบลแม่จะเรา' },
+                        { letterRef: 'หนังสือที่ ตก ๗๕๘๐๕/๑๖๓', requestor: 'องค์การบริหารส่วนตำบลพระธาตุ' },
+                        { letterRef: 'หนังสือที่ ตก ๗๔๒๐๑/๑๔๑', requestor: 'องค์การบริหารส่วนตำบลแม่สอง' },
+                        { letterRef: 'หนังสือที่ ตก ๗๑๐๐๑/๓๒๘', requestor: 'องค์การบริหารส่วนตำบลช่องแคบ' },
+                        { letterRef: 'หนังสือที่ ตก ๗๔๑๐๓/๒๗๐', requestor: 'องค์การบริหารส่วนตำบลเชียงทอง' },
+                        { letterRef: 'หนังสือที่ ตก ๗๔๘๐๓/๓๒๖', requestor: 'องค์การบริหารส่วนตำบลแม่ปะ' },
+                        { letterRef: 'หนังสือที่ ตก ๗๔๕๐๑.๐๓/๒๑๐', requestor: 'องค์การบริหารส่วนตำบลตากออก' },
+                        { letterRef: 'หนังสือที่ ตก ๗๔๒๐๑.๐๓/๒๑๑', requestor: 'องค์การบริหารส่วนตำบลแม่ท้อ' },
+                        { letterRef: 'หนังสือที่ สท ๕๒๖๐๓/๕๔๐', requestor: 'เทศบาลตำบลบ้านสวน' },
+                        { letterRef: 'หนังสือที่ สท ๕๒๖๐๓/๕๓๙', requestor: 'เทศบาลตำบลบ้านสวน' },
+                        { letterRef: 'หนังสือที่ ตก ๕๑๐๐๕/๑๖๗๔', requestor: 'องค์การบริหารส่วนจังหวัดตาก' },
+                        { letterRef: 'หนังสือที่ ตก ๕๓๖.๐๕/๒๔๔', requestor: 'เทศบาลตำบลหนองบัวใต้' },
+                        { letterRef: 'หนังสือที่ ตก ๕๓๖.๐๕/๒๔๕', requestor: 'เทศบาลตำบลหนองบัวใต้' },
+                        { letterRef: 'หนังสือที่ ตก ๕๓๖.๐๕/๒๔๖', requestor: 'เทศบาลตำบลหนองบัวใต้' },
+                        { letterRef: 'หนังสือที่ ตก ๕๓๖.๐๕/๒๕๑', requestor: 'เทศบาลตำบลหนองบัวใต้' },
+                        { letterRef: 'หนังสือที่ ตก ๕๓๖.๐๕/๒๔๙', requestor: 'เทศบาลตำบลหนองบัวใต้' },
+                        { letterRef: 'หนังสือที่ ตก ๕๓๖.๐๕/๒๔๗', requestor: 'เทศบาลตำบลหนองบัวใต้' },
+                        { letterRef: 'หนังสือที่ ตก ๕๓๖.๐๕/๒๕๐', requestor: 'เทศบาลตำบลหนองบัวใต้' },
+                        { letterRef: 'หนังสือที่ ตก ๕๓๖.๐๕/๒๔๘', requestor: 'เทศบาลตำบลหนองบัวใต้' },
+                        { letterRef: 'หนังสือที่ สท ๕๒๑๐๔/๗๕๘', requestor: 'เทศบาลเมืองสวรรคโลก' }
+                    ];
+                    this.memoItems = raw.map((r, i) => this.normalizeItem({ ...r, docNo: `อว 0654.11/${2301 + i}`, reportDate: '2026-03-30' }));
+                    this.saveState();
+                    this.showToast('โหลดข้อมูลตัวอย่าง 23 ฉบับ (2 หน้า: 12 + 11) เรียบร้อย');
+                },
+
+                resizeImageAndToBase64(file, maxDimension, callback, mimeType = 'image/jpeg', quality = 0.80) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            let width = img.width, height = img.height;
+                            const aspectRatio = width / height;
+                            if (width > height) { if (width > maxDimension) { height = Math.round(height * (maxDimension / width)); width = maxDimension; } } 
+                            else { if (height > maxDimension) { width = Math.round(width * (maxDimension / height)); height = maxDimension; } }
+                            const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height); ctx.drawImage(img, 0, 0, width, height);
+                            callback(canvas.toDataURL(mimeType, quality), aspectRatio);
+                        };
+                        img.src = event.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                },
+
+                handleGarudaUpload(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    this.resizeImageAndToBase64(file, 600, (b, a) => {
+                        this.assets.garudaBase64 = b;
+                        this.garudaMeta.aspectRatio = a;
+                        localStorage.setItem('rmutl_lab_assets', JSON.stringify({ garudaBase64: b }));
+                        localStorage.setItem('garuda_meta', JSON.stringify(this.garudaMeta));
+                        this.showToast('ฝังตราครุฑเรียบร้อย');
+                    }, 'image/png', 1.0);
+                },
+
+                resetGarudaAsset() {
+                    this.assets.garudaBase64 = '';
+                    this.garudaMeta.aspectRatio = null;
+                    localStorage.removeItem('garuda_meta');
+                    this.showToast('คืนค่าตราครุฑเริ่มต้น');
+                },
+
+                handleBatchJsonImport(e) {
+                    const files = Array.from(e.target.files);
+                    if (files.length === 0) return;
+
+                    let addedCount = 0;
+                    files.forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            try {
+                                const data = JSON.parse(event.target.result);
+                                if (data.job) {
+                                    const j = data.job;
+                                    let refText = '';
+                                    if (j.reference && j.reference.trim() !== '') {
+                                        refText = j.reference.trim().startsWith('หนังสือ') ? j.reference.trim() : `หนังสือที่ ${j.reference.trim()}`;
+                                    } else if (j.receiveDate) {
+                                        refText = `หนังสือลงวันที่ ${this.formatThaiDate(j.receiveDate, true)}`;
+                                    } else {
+                                        refText = 'หนังสือที่ .................................';
+                                    }
+
+                                    this.memoItems.push(this.normalizeItem({
+                                        letterRef: refText,
+                                        letterDateText: j.receiveDate ? this.formatThaiDate(j.receiveDate, false) : '',
+                                        requestor: this.cleanText(j.requestor) || this.cleanText(j.projectOwner) || '',
+                                        docNo: this.cleanText(j.docNo) || 'อว 0654.11/',
+                                        reportDate: j.reportDate || this.memo.date,
+                                        testMaterial: this.cleanText(j.testMaterial) || 'ตัวอย่างเหล็กเสริม',
+                                        project: this.cleanText(j.project) || '',
+                                        location: this.cleanText(j.location) || '',
+                                        contractNo: this.cleanText(j.contractNo) || '',
+                                        contractDate: this.cleanText(j.contractDate) || '',
+                                        reportPages: Number(j.reportPages) || 1
+                                    }));
+                                    addedCount++;
+                                    this.saveState();
+                                }
+                            } catch (err) {}
+                        };
+                        reader.readAsText(file);
+                    });
+                    setTimeout(() => {
+                        this.showToast(`นำเข้าข้อมูลจากไฟล์ JSON สำเร็จ ${addedCount} รายการ`);
+                    }, 500);
+                },
+
+                handleBatchImagesUpload(e) {
+                    const files = Array.from(e.target.files);
+                    if (files.length === 0) return;
+
+                    let loadedCount = 0;
+                    files.forEach(file => {
+                        this.resizeImageAndToBase64(file, 1200, (resizedBase64) => {
+                            this.aiQueue.push({
+                                file: file,
+                                preview: resizedBase64,
+                                status: 'idle',
+                                statusText: '',
+                                usedModel: '',
+                                errorMsg: '',
+                                extracted: null
+                            });
+                            loadedCount++;
+                            if (loadedCount === files.length) {
+                                this.showToast(`เตรียมภาพความคมชัดสูง (1200px) ทั้ง ${files.length} ภาพพร้อมสแกน`);
+                            }
+                        }, 'image/jpeg', 0.80);
+                    });
+                },
+
+                async runCooldownTimer(seconds, reasonText) {
+                    this.aiCooldownReason = reasonText;
+                    for (let s = seconds; s > 0; s--) {
+                        this.aiCooldownSeconds = s;
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
+                    this.aiCooldownSeconds = 0;
+                    this.aiCooldownReason = '';
+                },
+
+                async fetchAvailableGeminiModels(apiKey) {
+                    if (this.discoveredVisionModels.length > 0) return this.discoveredVisionModels;
+                    try {
+                        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                        if (!res.ok) return [];
+                        const data = await res.json();
+                        if (!data.models) return [];
+                        const valid = data.models
+                            .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+                            .map(m => m.name.replace('models/', ''))
+                            .filter(name => name.startsWith('gemini-') && !name.includes('embedding') && !name.includes('tts') && !name.includes('imagen') && !name.includes('2.5') && !name.includes('2.0') && !name.includes('1.5'));
+                        valid.sort((a, b) => {
+                            const score = (n) => {
+                                let s = 0;
+                                if (n === 'gemini-3-flash-preview') s += 200;
+                                if (n === 'gemini-3.1-flash-lite-preview') s += 190;
+                                if (n === 'gemini-3.1-pro-preview') s += 180;
+                                if (n.includes('3.5') || n.includes('4.0')) s += 160;
+                                if (n.includes('3.1') || n.includes('3.0') || n.includes('gemini-3')) s += 140;
+                                if (n.includes('flash')) s += 40;
+                                return s;
+                            };
+                            return score(b) - score(a);
+                        });
+                        this.discoveredVisionModels = valid;
+                        return valid;
+                    } catch (e) {
+                        return [];
+                    }
+                },
+
+                async scanMultiImagesWithGemini(itemsChunk, apiKey, preferPro = false) {
+                    const mimeType = 'image/jpeg';
+
+                    const baseChain = preferPro
+                        ? [
+                            'gemini-3.1-pro-preview',
+                            this.activeAiModelId,
+                            'gemini-3-flash-preview',
+                            'gemini-3.1-flash-lite-preview'
+                          ]
+                        : [
+                            this.lastWorkingAiModel && !this.lastWorkingAiModel.includes('pro') ? this.lastWorkingAiModel : '',
+                            this.activeAiModelId && !this.activeAiModelId.includes('pro') ? this.activeAiModelId : '',
+                            'gemini-3-flash-preview',
+                            'gemini-3.1-flash-lite-preview',
+                            'gemini-3.1-pro-preview'
+                          ];
+
+                    let modelsToTry = [...new Set(baseChain)].filter(m => m && !m.includes('2.5') && !m.includes('2.0') && !m.includes('1.5') && !['gemini-3.0-flash', 'gemini-3.0-pro'].includes(m));
+                    if (modelsToTry.length === 0) modelsToTry.push('gemini-3-flash-preview');
+
+                    const systemPrompt = `คุณคือผู้เชี่ยวชาญงานสารบรรณวิศวกรรมโยธา มทร.ล้านนา ตาก
+ผู้ใช้จะส่งภาพ "หนังสือขอความอนุเคราะห์ทดสอบวัสดุ" ที่หน่วยงานภายนอกส่งมายัง มทร.ล้านนา ตาก จำนวน ${itemsChunk.length} ภาพ (เรียงตามลำดับ imageIndex 1 ถึง ${itemsChunk.length})
+
+คำสั่งสำคัญในการหา "ผู้ขอความอนุเคราะห์ (requestor)" — ห้ามเว้นว่างเด็ดขาด:
+1. อ่านจากหลายจุดในเอกสารประกอบกัน:
+   - จุดที่ 1 (ย่อหน้าแรก): มักขึ้นต้นด้วยคำว่า "ด้วย..." เช่น "ด้วยองค์การบริหารส่วนตำบลยกกระบัตร อยู่ระหว่างดำเนินโครงการ..." -> ให้ดึง "องค์การบริหารส่วนตำบลยกกระบัตร"
+   - จุดที่ 2 (ย่อหน้าที่สอง): มักมีคำว่า "ในการนี้ องค์การบริหารส่วนตำบลยกกระบัตร จึงขอความอนุเคราะห์..."
+   - จุดที่ 3 (มุมบนขวาใต้ตราครุฑ): มักระบุสถานที่ตั้ง เช่น "ที่ทำการองค์การบริหารส่วนตำบลยกกระบัตร" -> ให้ตัดคำว่า "ที่ทำการ" หรือ "สำนักงาน" ข้างหน้าออก เหลือเพียง "องค์การบริหารส่วนตำบลยกกระบัตร"
+   - จุดที่ 4 (ท้ายหนังสือใต้ลายเซ็น): มักระบุตำแหน่งผู้ลงนาม เช่น "นายกองค์การบริหารส่วนตำบลยกกระบัตร" -> หน่วยงานผู้ขอคือ "องค์การบริหารส่วนตำบลยกกระบัตร"
+2. ห้ามนำคำว่า "มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา วิทยาเขตตาก" หรือ "อธิการบดี..." มาใส่ในช่อง requestor เด็ดขาด เพราะนั่นคือผู้รับหนังสือ ไม่ใช่ผู้ขอ
+
+รายละเอียดฟิลด์ทั้งหมดที่ต้องสกัดเป็น JSON Array ตามลำดับ imageIndex:
+- imageIndex: ลำดับที่ของภาพ (1 ถึง ${itemsChunk.length})
+- letterRef: เลขที่หนังสือขอความอนุเคราะห์ มุมบนซ้าย (ระวัง: เลขหลังเครื่องหมาย / มักเขียนด้วยลายมือ เช่น "ที่ ตก ๗๔๗๐๑/๘๑๓" ให้รวมเป็น "หนังสือที่ ตก 74701/813" หรือถ้าเป็นเอกชนไม่มีเลขที่ให้ใช้ "หนังสือลงวันที่ ...")
+- letterDateText: วันที่ของหนังสือขอความอนุเคราะห์ (อยู่ตรงกลางใต้ตราครุฑ มักเขียนตัวเลขวันด้วยลายมือ เช่น "๑๔ กันยายน ๒๕๖๙" -> "14 กันยายน 2569") ระวัง: ห้ามใช้วันที่ในกรอบตราประทับลงรับมุมบนขวา
+- requestor: ชื่อหน่วยงานผู้ขอความอนุเคราะห์ เช่น "องค์การบริหารส่วนตำบลยกกระบัตร", "เทศบาลตำบลแม่ระมาด", "ห้างหุ้นส่วนจำกัด ..." (ห้ามเว้นว่างเด็ดขาด)
+- recipientTitle: ตำแหน่งผู้รับในหนังสือนำส่งตอบกลับ (ดูจากตำแหน่งผู้ลงนามท้ายหนังสือขอความอนุเคราะห์ เช่น "นายกองค์การบริหารส่วนตำบลยกกระบัตร", "นายกเทศมนตรีตำบล...", "หุ้นส่วนผู้จัดการ ...", "กรรมการผู้จัดการ ...")
+- project: ชื่อโครงการก่อสร้าง (เช่น "โครงการปรับปรุงฌาปนสถาน" ไม่ต้องเอาคำว่า อยู่ระหว่างดำเนิน)
+- location: สถานที่ก่อสร้าง (เช่น "หมู่ 4 บ้านสองแคว ตำบลยกกระบัตร อำเภอสามเงา จังหวัดตาก" โดยดูข้อมูลตำบล/อำเภอ/จังหวัดจากหัวกระดาษมุมบนขวาประกอบได้)
+- contractNo: สัญญาจ้างเลขที่ หรือ สัญญาเลขที่ (คงเลขปี พ.ศ. ตามต้นฉบับ เช่น "026/2569")
+- contractDate: วันที่ทำสัญญาจ้าง (เช่น "17 สิงหาคม 2569")
+- testActionPrefix: คำกริยาการทดสอบแบบสั้นเท่านั้น ให้เลือกคำที่ตรงที่สุดจาก: "ทดสอบคุณภาพวัสดุ", "ทดสอบกำลังของวัสดุ", "ทดสอบกำลังดึงของวัสดุ", "ทดสอบคุณสมบัติของวัสดุ", "ทดสอบคุณภาพวัสดุก่อสร้าง", "ทดสอบคุณภาพวัสดุงานก่อสร้าง", "ทดสอบวัสดุก่อสร้าง", "ทดสอบค่าความหนาแน่นของชั้นดิน", "ทดสอบเจาะสำรวจชั้นดิน (Boring Test)", "ทดสอบความต้านทานแรงอัดแท่งคอนกรีตทรงกระบอก", "ทดสอบกำลังอัดตัวอย่างแท่งคอนกรีตรูปทรงลูกบาศก์"
+- testMaterial: ชื่อวัสดุในวงเล็บแบบสั้น (ไม่เกิน 25 ตัวอักษร) เช่น ถ้าในหนังสือเขียนว่า "ทดสอบคุณภาพเหล็กเสริมคอนกรีต" หรือ "ทดสอบเหล็กเสริมคอนกรีต" ให้ใส่ "ตัวอย่างเหล็กเสริมคอนกรีต" หรือ "ตัวอย่างเหล็กเสริม", ถ้าเป็นแท่งคอนกรีตให้ใส่ "ตัวอย่างแท่งคอนกรีต" หรือ "ตัวอย่างลูกปูน"
+- reportPages: จำนวนแผ่นรายงานผล (หากที่มุมขวาล่างมีลายมือเขียน เช่น "3 หน้า" หรือ "3 แผ่น" ให้ดึงตัวเลขมาใส่ เช่น 3 หากไม่มีให้ใส่ 1)`;
+
+                    const userParts = [
+                        { text: `กรุณาสกัดข้อมูลจากภาพหนังสือขอความอนุเคราะห์ทั้ง ${itemsChunk.length} ภาพนี้ โดยต้องระบุ requestor (หน่วยงานผู้ขอความอนุเคราะห์) ให้ครบทุกภาพ ห้ามเว้นว่าง และคืนค่าเป็น JSON Array เรียงตาม imageIndex 1 ถึง ${itemsChunk.length}` }
+                    ];
+                    itemsChunk.forEach((it, idx) => {
+                        const base64Data = it.preview.split(',')[1];
+                        userParts.push({ text: `ภาพที่ ${idx + 1}:` });
+                        userParts.push({ inlineData: { mimeType: mimeType, data: base64Data } });
+                    });
+
+                    let lastErrorMsg = 'ไม่สามารถประมวลผลได้';
+
+                    for (let mIdx = 0; mIdx < modelsToTry.length; mIdx++) {
+                        const modelName = modelsToTry[mIdx];
+                        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                        let retries429 = 0;
+                        const maxRetries429 = 2;
+
+                        while (retries429 <= maxRetries429) {
+                            const controller = new AbortController();
+                            const timeoutId = setTimeout(() => controller.abort(), 45000);
+
+                            try {
+                                itemsChunk.forEach(it => {
+                                    it.status = 'scanning';
+                                    it.statusText = `กำลังอ่านกลุ่ม (${itemsChunk.length} ภาพ) ด้วย ${modelName}...`;
+                                });
+
+                                const res = await fetch(apiUrl, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    signal: controller.signal,
+                                    body: JSON.stringify({
+                                        contents: [{
+                                            role: "user",
+                                            parts: userParts
+                                        }],
+                                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                                        generationConfig: {
+                                            responseMimeType: "application/json",
+                                            responseSchema: {
+                                                type: "ARRAY",
+                                                items: {
+                                                    type: "OBJECT",
+                                                    properties: {
+                                                        imageIndex: { type: "INTEGER" },
+                                                        letterRef: { type: "STRING" },
+                                                        letterDateText: { type: "STRING" },
+                                                        requestor: { type: "STRING" },
+                                                        recipientTitle: { type: "STRING" },
+                                                        project: { type: "STRING" },
+                                                        location: { type: "STRING" },
+                                                        contractNo: { type: "STRING" },
+                                                        contractDate: { type: "STRING" },
+                                                        testActionPrefix: { type: "STRING" },
+                                                        testMaterial: { type: "STRING" },
+                                                        reportPages: { type: "INTEGER" }
+                                                    },
+                                                    required: ["imageIndex", "letterRef", "requestor", "recipientTitle"]
+                                                }
+                                            }
+                                        }
+                                    })
+                                });
+                                clearTimeout(timeoutId);
+
+                                if (res.status === 429) {
+                                    retries429++;
+                                    if (retries429 <= maxRetries429) {
+                                        itemsChunk.forEach(it => {
+                                            it.statusText = `ติดโควตา 429 (รอรีเซ็ตครั้งที่ ${retries429}/${maxRetries429})...`;
+                                        });
+                                        await this.runCooldownTimer(18, `ติดโควตาความถี่ Google AI (429) ระบบกำลังพักคอย 18 วินาทีแล้วสแกนกลุ่มนี้ต่ออัตโนมัติ...`);
+                                        continue;
+                                    } else {
+                                        lastErrorMsg = `โควตาของ ${modelName} เต็ม (429) กำลังสลับโมเดล...`;
+                                        break;
+                                    }
+                                }
+
+                                if (!res.ok) {
+                                    const errData = await res.json().catch(() => ({}));
+                                    lastErrorMsg = errData.error?.message || `HTTP ${res.status}`;
+                                    if (mIdx === modelsToTry.length - 1 && this.discoveredVisionModels.length === 0) {
+                                        const discovered = await this.fetchAvailableGeminiModels(apiKey);
+                                        discovered.forEach(dm => {
+                                            if (!modelsToTry.includes(dm)) modelsToTry.push(dm);
+                                        });
+                                    }
+                                    break;
+                                }
+
+                                const data = await res.json();
+                                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                                if (text) {
+                                    const cleanJson = this.safeExtractJsonString(text);
+                                    const parsed = JSON.parse(cleanJson);
+                                    const arr = Array.isArray(parsed) ? parsed : [parsed];
+
+                                    let matchedCount = 0;
+                                    itemsChunk.forEach((it, idx) => {
+                                        const found = arr.find(r => Number(r.imageIndex) === idx + 1) || arr[idx];
+                                        if (found) {
+                                            found.requestor = this.sanitizeRequestorName(found.requestor, found.recipientTitle, found.project);
+                                            it.extracted = found;
+                                            it.status = 'success';
+                                            it.usedModel = modelName;
+                                            it.errorMsg = '';
+                                            matchedCount++;
+                                        } else {
+                                            it.status = 'error';
+                                            it.errorMsg = 'ไม่พบข้อมูลของภาพนี้ในชุดผลลัพธ์';
+                                        }
+                                    });
+
+                                    if (!preferPro) {
+                                        this.lastWorkingAiModel = modelName;
+                                        localStorage.setItem('gemini_last_working_model', modelName);
+                                    }
+                                    return matchedCount;
+                                }
+                                break;
+                            } catch (err) {
+                                clearTimeout(timeoutId);
+                                if (err.name === 'AbortError') {
+                                    lastErrorMsg = `หมดเวลาเชื่อมต่อ (${modelName}) กำลังสลับโมเดล...`;
+                                } else {
+                                    lastErrorMsg = err.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
+                                }
+                                break;
+                            }
+                        }
+                    }
+
+                    itemsChunk.forEach(it => {
+                        it.status = 'error';
+                        it.errorMsg = lastErrorMsg;
+                    });
+                    return 0;
+                },
+
+                async retrySingleAiScan(idx, usePro = false) {
+                    if (this.isAiScanning) return;
+                    if (!this.customApiKey) {
+                        this.showApiKeyModal = true;
+                        this.showToast('กรุณาตั้งค่า API Key ก่อนเริ่มสแกน');
+                        return;
+                    }
+                    const item = this.aiQueue[idx];
+                    item.status = 'scanning';
+                    item.errorMsg = '';
+                    this.isAiScanning = true;
+                    const count = await this.scanMultiImagesWithGemini([item], this.customApiKey, usePro);
+                    this.isAiScanning = false;
+                    if (count > 0) {
+                        this.showToast(`สแกนภาพ #${idx + 1} สำเร็จ (${item.usedModel})`);
+                    }
+                },
+
+                async runBatchAiScan() {
+                    if (this.isAiScanning) return;
+                    if (!this.customApiKey) {
+                        this.showApiKeyModal = true;
+                        this.showToast('กรุณาตั้งค่า API Key ก่อนเริ่มสแกน');
+                        return;
+                    }
+
+                    const pendingItems = this.aiQueue.filter(it => !(it.extracted && it.status === 'success'));
+                    if (pendingItems.length === 0) {
+                        this.showToast('ภาพทั้งหมดในคิวถูกสแกนเรียบร้อยแล้ว');
+                        return;
+                    }
+
+                    this.isAiScanning = true;
+                    const apiKey = this.customApiKey;
+                    const chunkSize = Number(this.batchChunkSize) || 4;
+                    const isProSelected = this.activeAiModelId.includes('pro');
+                    let totalSuccess = 0;
+
+                    for (let i = 0; i < pendingItems.length; i += chunkSize) {
+                        const chunk = pendingItems.slice(i, i + chunkSize);
+
+                        if (i > 0) {
+                            const delaySec = isProSelected ? 12 : 4;
+                            await this.runCooldownTimer(delaySec, `หน่วงเวลาปลอดภัย ${delaySec} วินาที ก่อนส่งชุดภาพถัดไป (${i + 1}–${Math.min(i + chunkSize, pendingItems.length)} จาก ${pendingItems.length})...`);
+                        }
+
+                        const okCount = await this.scanMultiImagesWithGemini(chunk, apiKey, isProSelected);
+                        totalSuccess += okCount;
+                    }
+
+                    this.isAiScanning = false;
+                    if (totalSuccess > 0) {
+                        this.showToast(`สแกนแบบกลุ่มสำเร็จ ${totalSuccess} ภาพ (ประหยัดโควตา API สูงสุด ${chunkSize} เท่า)`);
+                    } else {
+                        this.showToast('⚠️ สแกนไม่สำเร็จ กรุณาตรวจสอบ API Key หรือข้อความแจ้งเตือน');
+                    }
+                },
+
+                applyBatchAiToTable() {
+                    let count = 0;
+                    this.aiQueue.forEach(q => {
+                        if (q.extracted) {
+                            const ext = q.extracted;
+                            const req = this.sanitizeRequestorName(ext.requestor, ext.recipientTitle, ext.project);
+                            this.memoItems.push(this.normalizeItem({
+                                letterRef: this.cleanText(ext.letterRef) || 'หนังสือที่ .................................',
+                                letterDateText: this.cleanText(ext.letterDateText) || '',
+                                requestor: req,
+                                recipientTitle: this.cleanText(ext.recipientTitle) || this.formatCoverRecipient(req),
+                                docNo: 'อว 0654.11/',
+                                reportDate: this.memo.date,
+                                testActionPrefix: this.sanitizeActionPrefix(ext.testActionPrefix),
+                                testMaterial: this.sanitizeTestMaterial(ext.testMaterial),
+                                project: this.cleanText(ext.project) || '',
+                                location: this.cleanText(ext.location) || '',
+                                contractNo: this.cleanText(ext.contractNo) || '',
+                                contractDate: this.cleanText(ext.contractDate) || '',
+                                reportPages: Number(ext.reportPages) || 1,
+                                reportUnit: 'แผ่น'
+                            }));
+                            count++;
+                        }
+                    });
+                    this.aiQueue = [];
+                    this.showBatchAiModal = false;
+                    this.saveState();
+                    this.showToast(`เพิ่ม ${count} รายการพร้อมข้อมูลผู้ขอและหนังสือนำส่งเข้าสู่ตารางเรียบร้อย`);
+                },
+
+                formatThaiDate(dateString, useThaiNumerals = false) {
+                    if (!dateString) return "";
+                    const parts = dateString.split("-");
+                    if (parts.length !== 3) return useThaiNumerals ? this.toThaiNumerals(dateString) : dateString;
+                    const yearBE = parseInt(parts[0]) < 2500 ? parseInt(parts[0]) + 543 : parseInt(parts[0]);
+                    const formatted = `${parseInt(parts[2])} ${this.thaiMonths[parseInt(parts[1]) - 1]} ${yearBE}`;
+                    return useThaiNumerals ? this.toThaiNumerals(formatted) : formatted;
+                },
+
+                formatThaiDateSpaced(dateString) {
+                    if (!dateString) return "";
+                    const parts = dateString.split("-");
+                    if (parts.length !== 3) return this.toThaiNumerals(dateString);
+                    const yearBE = parseInt(parts[0]) < 2500 ? parseInt(parts[0]) + 543 : parseInt(parts[0]);
+                    const formatted = `${parseInt(parts[2])}  ${this.thaiMonths[parseInt(parts[1]) - 1]}  ${yearBE}`;
+                    return this.toThaiNumerals(formatted);
+                },
+
+                toThaiNumerals(text) {
+                    if (!text && text !== 0) return "";
+                    const th = ['๐', '๑', '๒', '๓', '๔', '๕', '๖', '๗', '๘', '๙'];
+                    return text.toString().replace(/[0-9]/g, m => th[m]);
+                },
+
+                formatCoverSubject(item) {
+                    const prefix = this.cleanText(item.testActionPrefix) || 'ทดสอบคุณภาพวัสดุ';
+                    const mat = this.cleanText(item.testMaterial);
+                    const full = mat ? `ผลการ${prefix} (${mat})` : `ผลการ${prefix}`;
+                    return this.toThaiNumerals(full);
+                },
+
+                formatCoverRecipient(requestor) {
+                    const req = this.cleanText(requestor);
+                    if (!req) return '........................................................';
+                    if (req.startsWith('องค์การบริหารส่วนตำบล')) return 'นายก' + req;
+                    if (req.startsWith('เทศบาลตำบล')) return 'นายกเทศมนตรี' + req.replace('เทศบาล', '');
+                    if (req.startsWith('เทศบาลเมือง')) return 'นายกเทศมนตรี' + req.replace('เทศบาล', '');
+                    if (req.startsWith('สำนักงานเทศบาล')) return 'นายกเทศมนตรี' + req.replace('สำนักงานเทศบาล', '');
+                    if (req.startsWith('องค์การบริหารส่วนจังหวัด')) return 'นายก' + req;
+                    if (req.startsWith('ที่ว่าการอำเภอ') || req.startsWith('ที่ทำการปกครองอำเภอ')) {
+                        return 'นายอำเภอ' + req.replace('ที่ว่าการอำเภอ', '').replace('ที่ทำการปกครองอำเภอ', '');
+                    }
+                    if (req.startsWith('ห้างหุ้นส่วน')) return 'หุ้นส่วนผู้จัดการ ' + req;
+                    if (req.startsWith('บริษัท')) return 'กรรมการผู้จัดการ ' + req;
+                    return req;
+                },
+
+                formatCoverRefText(item) {
+                    const req = this.cleanText(item.requestor);
+                    let ref = this.cleanText(item.letterRef);
+                    const dateTxt = this.cleanText(item.letterDateText);
+                    let result = '';
+
+                    if (ref.startsWith('หนังสือที่')) {
+                        const code = ref.replace('หนังสือที่', '').trim();
+                        result = `หนังสือ ${req} ที่ ${code}`;
+                        if (dateTxt) result += ` ลงวันที่ ${this.formatThaiDate(dateTxt, false)}`;
+                    } else if (ref.startsWith('หนังสือลงวันที่')) {
+                        result = `หนังสือ ${req} ${ref.replace('หนังสือ', '').trim()}`;
+                    } else if (ref) {
+                        result = `หนังสือ ${req} ที่ ${ref}`;
+                        if (dateTxt) result += ` ลงวันที่ ${this.formatThaiDate(dateTxt, false)}`;
+                    } else {
+                        result = `หนังสือ ${req}`;
+                        if (dateTxt) result += ` ลงวันที่ ${this.formatThaiDate(dateTxt, false)}`;
+                    }
+                    return this.toThaiNumerals(result);
+                },
+
+                /* สร้างย่อหน้าที่ 1 โดยรองรับการเว้นวรรค 2 เคาะจริง (&nbsp;&nbsp;) หน้าคำว่า "นั้น" สำหรับไฟล์ Word */
+                buildCoverBodyParagraph1(item, forWord = false) {
+                    const req = this.cleanText(item.requestor) || 'หน่วยงานของท่าน';
+                    const prefix = this.cleanText(item.testActionPrefix) || 'ทดสอบคุณภาพวัสดุ';
+                    const mat = this.cleanText(item.testMaterial);
+                    const testPhrase = mat ? `${prefix} (${mat})` : prefix;
+                    const proj = this.cleanText(item.project);
+                    const loc = this.cleanText(item.location);
+                    const cNo = this.cleanText(item.contractNo);
+                    const cDate = item.contractDate ? this.formatThaiDate(item.contractDate, false) : '';
+
+                    let sentence = `ตามหนังสือที่อ้างถึง ${req} ได้ขอความอนุเคราะห์ให้มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา ตาก ${testPhrase}`;
+                    if (proj) {
+                        sentence += ` เพื่อใช้ใน${proj.startsWith('โครงการ') ? proj : 'โครงการ' + proj}`;
+                    }
+                    if (loc) {
+                        sentence += ` สถานที่ก่อสร้าง ${loc.startsWith('ณ ') ? loc : 'ณ ' + loc}`;
+                    }
+                    if (cNo) {
+                        sentence += ` ตามสัญญาจ้างเลขที่ ${cNo}`;
+                    }
+                    if (cDate) {
+                        sentence += ` ลงวันที่ ${cDate}`;
+                    }
+                    sentence += ` ความละเอียดแจ้งแล้ว`;
+                    const thaiSentence = this.toThaiNumerals(sentence);
+                    return forWord ? `${thaiSentence}&nbsp;&nbsp;นั้น` : `${thaiSentence}\u00A0\u00A0นั้น`;
+                },
+
+                buildCoverBodyParagraph2(item) {
+                    const prefix = this.cleanText(item.testActionPrefix) || 'ทดสอบคุณภาพวัสดุ';
+                    const mat = this.cleanText(item.testMaterial);
+                    const testPhrase = mat ? `${prefix} (${mat})` : prefix;
+                    const sentence = `มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา ตาก ได้ทำการ${testPhrase} ดังกล่าวให้แล้ว ผลการทดสอบ ดังรายละเอียดในเอกสารรายงานผลที่ส่งมาด้วยพร้อมนี้`;
+                    return this.toThaiNumerals(sentence);
+                },
+
+                getCoverFilename(item) {
+                    const rawDocNo = this.cleanText(item.docNo) || 'อว';
+                    const cleanDocNo = rawDocNo.replace(/[\\/:*?"<>|\s]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+                    const cleanReq = (this.cleanText(item.requestor) || 'ผู้ขอ').replace(/[\\/:*?"<>|\s]+/g, '_');
+                    return `หนังสือนำส่ง_${cleanDocNo}_${cleanReq}.doc`;
+                },
+
+                buildMhtmlDocument(htmlBody, images = [], extraStyles = '') {
+                    const boundary = "----=_NextPart_RMUTL_EXACT_MEMO_" + Math.floor(Math.random() * 100000000);
+                    let mhtml = "MIME-Version: 1.0\r\n";
+                    mhtml += `Content-Type: multipart/related; boundary="${boundary}"; type="text/html"\r\n\r\n`;
+                    mhtml += `--${boundary}\r\nContent-Type: text/html; charset="utf-8"\r\nContent-Transfer-Encoding: 8bit\r\n\r\n`;
+                    mhtml += `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><style>${extraStyles}</style></head><body>${htmlBody}</body></html>\r\n\r\n`;
+                    images.forEach(img => {
+                        if (img && img.base64) {
+                            mhtml += `--${boundary}\r\nContent-Location: ${img.location}\r\nContent-Type: ${img.mime || 'image/png'}\r\nContent-Transfer-Encoding: base64\r\n\r\n${img.base64}\r\n\r\n`;
+                        }
+                    });
+                    mhtml += `--${boundary}--\r\n`;
+                    return mhtml;
+                },
+
+                async getAssetMimeAndBase64(src) {
+                    if (!src) return null;
+                    if (src.startsWith('data:')) {
+                        const m = src.match(/^data:([^;]+);base64,(.+)$/);
+                        if (m) return { mime: m[1], base64: m[2] };
+                    }
+                    try {
+                        const res = await fetch(src);
+                        const blob = await res.blob();
+                        return new Promise(resolve => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                                resolve({ mime: blob.type || 'image/png', base64: reader.result.split(',')[1] });
+                            };
+                            reader.readAsDataURL(blob);
+                        });
+                    } catch (e) { return null; }
+                },
+
+                /* =========================================================================================
+                   ส่งออกหนังสือนำส่งภายนอกรายบริษัท เป็นไฟล์ Word (.doc) แก้ไขครบ 3 จุดตามที่ระบุ:
+                   1. คำขึ้นบรรทัด (เรื่อง, เรียน, อ้างถึง, สิ่งที่ส่งมาด้วย) ไม่ทำตัวหนา
+                   2. คำว่า "นั้น" เว้นเพิ่มอีก 1 ตัวอักษร (&nbsp;&nbsp;นั้น)
+                   3. คำว่า "สำนักงานบริหารมหาวิทยาลัยฯ..." ทั้ง 3 บรรทัด ใช้อักษรขนาด 16pt
+                   ========================================================================================= */
+                async exportCoverLetterToWord(item) {
+                    try {
+                        const filename = this.getCoverFilename(item);
+
+                        const images = [];
+                        const garudaData = await this.getAssetMimeAndBase64(this.garudaSrc);
+                        if (garudaData) images.push({ location: 'garuda_cover.png', mime: garudaData.mime, base64: garudaData.base64 });
+
+                        const garudaHeightPt = 104;
+                        const garudaWidthPt = this.garudaMeta.aspectRatio ? Math.round(garudaHeightPt * this.garudaMeta.aspectRatio) : 96;
+
+                        const topCm = Math.min(Number(this.coverMargins.top) || 1.4, 1.4);
+                        const bottomCm = Math.min(Number(this.coverMargins.bottom) || 1.0, 0.9);
+                        const leftCm = Number(this.coverMargins.left) || 2.5;
+                        const rightCm = Number(this.coverMargins.right) || 1.8;
+
+                        const extraStyles = `
+                            @page Section1 {
+                                mso-page-orientation: portrait;
+                                size: 21.0cm 29.7cm;
+                                margin: ${topCm}cm ${rightCm}cm ${bottomCm}cm ${leftCm}cm;
+                                mso-footer-margin: 0.5cm;
+                            }
+                            div.Section1 { page: Section1; }
+                            body {
+                                font-family: "TH Sarabun PSK", "TH Sarabun New", "Sarabun", sans-serif;
+                                font-size: 16pt;
+                                line-height: 1.10;
+                                color: black;
+                                margin: 0;
+                                padding: 0;
+                            }
+                            p { margin: 0; padding: 0; font-size: 16pt; line-height: 1.10; }
+                            table { border-collapse: collapse; width: 100%; font-size: 16pt; }
+                            td { border: none; padding: 0; font-size: 16pt; line-height: 1.10; }
+                        `;
+
+                        const posLines = (this.memo.signerPosition || '').split('\n').filter(l => l.trim() !== '');
+                        const signerPosHtml = this.toThaiNumerals(posLines.join('\n')).replace(/\n/g, '<br>');
+                        const hasRankPrefix = Boolean(this.memo.signerRankPrefix && this.memo.signerRankPrefix.trim() !== '');
+
+                        const signerBlockHtml = hasRankPrefix
+                            ? `
+                                <p align="left" style="text-align: left; padding-left: 3.2cm; margin: 0;">${this.toThaiNumerals(this.memo.signerRankPrefix)}</p>
+                                <p align="center" style="text-align: center; margin: 0;">(${this.toThaiNumerals(this.memo.signerRealName || this.memo.signerName)})</p>
+                              `
+                            : `<p align="center" style="text-align: center; margin: 0;">(${this.toThaiNumerals(this.memo.signerRealName || this.memo.signerName)})</p>`;
+
+                        /* คำนวณบรรทัดที่ใช้จริงเพื่อคุมให้อยู่ใน 1 หน้าเสมอ */
+                        const p1PlainText = this.buildCoverBodyParagraph1(item, false);
+                        const p1WordHtml = this.buildCoverBodyParagraph1(item, true);
+                        const p2Text = this.buildCoverBodyParagraph2(item);
+                        const p1Lines = Math.max(2, Math.ceil(p1PlainText.length / 66));
+                        const p2Lines = Math.max(2, Math.ceil(p2Text.length / 66));
+                        const usedDynamicLines = p1Lines + p2Lines + posLines.length + (hasRankPrefix ? 1 : 0);
+
+                        const safeFooterBlankLines = Math.max(3, Math.min(6, 15 - usedDynamicLines));
+                        const footerSpacerHtml = Array(safeFooterBlankLines)
+                            .fill('<p style="margin: 0; line-height: 15.5pt; mso-line-height-rule: exactly;">&nbsp;</p>')
+                            .join('');
+
+                        const bodyHtml = `
+                            <div class="Section1">
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 2pt; border: none;">
+                                    <tr>
+                                        <td width="38%" valign="top" style="vertical-align: top; white-space: nowrap; padding: 0;">
+                                            <p style="margin: 0; margin-top: 52pt; mso-margin-top-alt: 52pt; line-height: 16pt; mso-line-height-rule: exactly; white-space: nowrap;">ที่ ${this.toThaiNumerals(item.docNo || 'อว ๐๖๕๔.๑๑/.......')}</p>
+                                        </td>
+                                        <td width="18%" align="center" valign="top" style="vertical-align: top; text-align: center; padding: 0;">
+                                            <p align="center" style="margin: 0; text-align: center;">
+                                                <img src="garuda_cover.png" width="${garudaWidthPt}" height="${garudaHeightPt}" style="width: ${garudaWidthPt}pt; height: ${garudaHeightPt}pt; display: inline-block;" alt="Garuda">
+                                            </p>
+                                        </td>
+                                        <td width="44%" valign="top" style="vertical-align: top; white-space: nowrap; padding: 0; padding-left: 4pt;">
+                                            <p style="margin: 0; margin-top: 52pt; mso-margin-top-alt: 52pt; line-height: 16pt; mso-line-height-rule: exactly; white-space: nowrap;">มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา ตาก</p>
+                                            <p style="margin: 0; line-height: 16pt; mso-line-height-rule: exactly; white-space: nowrap;">อำเภอเมืองตาก จังหวัดตาก ๖๓๐๐๐</p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <!-- ตำแหน่งเลขวันที่ของหนังสือ: padding-left: 7.7cm -->
+                                        <td colspan="3" valign="top" style="padding-top: 3pt; padding-left: 7.7cm;">
+                                            <p style="white-space: nowrap; margin: 0;">${this.formatThaiDateSpaced(item.reportDate || this.memo.date)}</p>
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <!-- 1. คำขึ้นบรรทัด (เรื่อง, เรียน, อ้างถึง, สิ่งที่ส่งมาด้วย) ไม่ทำตัวหนา -->
+                                <p style="margin-bottom: 2.5pt;">เรื่อง&nbsp;&nbsp;${this.formatCoverSubject(item)}</p>
+                                <p style="margin-bottom: 2.5pt;">เรียน&nbsp;&nbsp;${this.toThaiNumerals(item.recipientTitle || this.formatCoverRecipient(item.requestor))}</p>
+                                <p style="margin-bottom: 2.5pt;">อ้างถึง&nbsp;&nbsp;${this.formatCoverRefText(item)}</p>
+                                <p style="margin-bottom: 5pt;">สิ่งที่ส่งมาด้วย&nbsp;&nbsp;เอกสารรายงานผลการทดสอบ &nbsp;จำนวน &nbsp;${this.toThaiNumerals(item.reportPages || 1)} &nbsp;${item.reportUnit || 'แผ่น'}</p>
+
+                                <!-- 2. ย่อหน้า 1 เว้นหน้าคำว่า "นั้น" เพิ่มอีก 1 ตัวอักษร (&nbsp;&nbsp;นั้น) -->
+                                <p style="text-indent: 2.5cm; text-align: justify; text-justify: inter-cluster; margin-bottom: 4pt; line-height: 1.11;">
+                                    ${p1WordHtml}
+                                </p>
+
+                                <p style="text-indent: 2.5cm; text-align: justify; text-justify: inter-cluster; margin-bottom: 4pt; line-height: 1.11;">
+                                    ${p2Text}
+                                </p>
+
+                                <p style="text-indent: 2.5cm; margin-bottom: 6pt;">
+                                    จึงเรียนมาเพื่อโปรดทราบ
+                                </p>
+
+                                <!-- กึ่งกลางของชื่อและตำแหน่งผู้ลงนามอยู่ตรงกึ่งกลางของคำว่า "ขอแสดงความนับถือ" และตรงแนววันที่ -->
+                                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 2pt; border: none;">
+                                    <tr>
+                                        <td style="width: 1.2cm; border: none;"></td>
+                                        <td align="center" valign="top" style="width: 15.6cm; border: none; text-align: center; line-height: 1.11;">
+                                            <p align="center" style="text-align: center; margin: 0; white-space: nowrap;">ขอแสดงความนับถือ</p>
+                                            <p style="margin: 0; line-height: 15.5pt; mso-line-height-rule: exactly;">&nbsp;</p>
+                                            <p style="margin: 0; line-height: 15.5pt; mso-line-height-rule: exactly;">&nbsp;</p>
+                                            <p style="margin: 0; line-height: 15.5pt; mso-line-height-rule: exactly;">&nbsp;</p>
+                                            ${signerBlockHtml}
+                                            <p align="center" style="text-align: center; margin: 0;">${signerPosHtml}</p>
+                                        </td>
+                                        <td style="border: none;"></td>
+                                    </tr>
+                                </table>
+
+                                ${footerSpacerHtml}
+                                <!-- 3. คำว่า "สำนักงานบริหารมหาวิทยาลัยฯ..." ทั้ง 3 บรรทัด ใช้อักษรขนาด 16pt -->
+                                <div style="margin-top: 2pt;">
+                                    <p style="font-size: 16pt; line-height: 1.08; margin: 0;">สำนักงานบริหารมหาวิทยาลัยฯ</p>
+                                    <p style="font-size: 16pt; line-height: 1.08; margin: 0;">โทร. ๐ ๕๕๕๑ ๕๙๐๐</p>
+                                    <p style="font-size: 16pt; line-height: 1.08; margin: 0;">ไปรษณีย์อิเล็กทรอนิกส์ sarabun_TK@rmutl.ac.th</p>
+                                </div>
+                            </div>
+                        `;
+
+                        const mhtmlContent = this.buildMhtmlDocument(bodyHtml, images, extraStyles);
+                        const blob = new Blob([mhtmlContent], { type: 'application/msword;charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+                        URL.revokeObjectURL(url);
+                        this.showToast(`ส่งออกไฟล์ ${filename} สำเร็จ (แก้ไขครบทั้ง 3 จุด)`);
+                    } catch (e) {
+                        this.showToast('เกิดข้อผิดพลาดในการส่งออกหนังสือนำส่ง');
+                    }
+                },
+
+                /* ส่งออกบันทึกข้อความรวม เป็นไฟล์ Word (.doc) */
+                async exportMemoToWord() {
+                    try {
+                        const filename = `บันทึกขอลงนามผลทดสอบ_${this.memo.date || 'MEMO'}.doc`;
+
+                        const images = [];
+                        const garudaData = await this.getAssetMimeAndBase64(this.garudaSrc);
+                        if (garudaData) images.push({ location: 'garuda.png', mime: garudaData.mime, base64: garudaData.base64 });
+
+                        const isTightSinglePage = this.totalPages === 1 && this.memoItems.length >= 9;
+                        const garudaHeightPt = isTightSinglePage ? 64 : 72;
+                        const garudaWidthPt = this.garudaMeta.aspectRatio ? Math.round(garudaHeightPt * this.garudaMeta.aspectRatio) : Math.round(garudaHeightPt * 0.92);
+                        const itemLineHeightPt = isTightSinglePage ? '16.5pt' : '18pt';
+
+                        const extraStyles = `
+                            @page { 
+                                mso-page-orientation: portrait; 
+                                size: 21cm 29.7cm; 
+                                margin: 0.35in 0.5in 0.3in 1.1in;
+                            }
+                            body { font-family: "TH Sarabun PSK", "TH Sarabun New", "Sarabun", sans-serif; font-size: 16pt; line-height: 1.05; color: black; margin: 0; padding: 0; }
+                            p { margin: 0; padding: 0; }
+                            table.meta-table { width: 100%; border-collapse: collapse; margin-top: 0pt; margin-bottom: 1pt; font-size: 16pt; mso-padding-alt: 0pt 0pt 0pt 0pt; }
+                            table.meta-table tr { height: 21pt; mso-height-rule: at-least; }
+                            table.meta-table td { border: none; padding: 0pt; mso-padding-alt: 0pt 0pt 0pt 0pt; mso-padding-bottom-alt: 1pt; vertical-align: bottom; line-height: 1.12; font-size: 16pt; }
+                            table.items-table { width: 100%; border-collapse: collapse; margin-top: 1pt; margin-bottom: 1pt; font-size: 16pt; }
+                            table.items-table tr { height: ${itemLineHeightPt}; mso-height-rule: exact; }
+                            table.items-table td { border: none; padding: 0pt; vertical-align: top; line-height: ${itemLineHeightPt}; mso-line-height-rule: exactly; font-size: 16pt; }
+                        `;
+
+                        let bodyHtml = `
+                            <table width="100%" cellpadding="0" cellspacing="0" style="border: none; margin-bottom: 0pt; mso-padding-alt: 0pt 0pt 0pt 0pt;">
+                                <tr>
+                                    <td width="25%" valign="bottom" style="border: none; padding: 0;">
+                                        <img src="garuda.png" width="${garudaWidthPt}" height="${garudaHeightPt}" style="width: ${garudaWidthPt}pt; height: ${garudaHeightPt}pt; display: block;" alt="Garuda">
+                                    </td>
+                                    <td width="50%" align="center" valign="bottom" style="border: none; padding: 0;">
+                                        <p align="center" style="font-size: 29pt; font-weight: bold; margin: 0; padding: 0; line-height: 1.0; text-align: center; color: black;">บันทึกข้อความ</p>
+                                    </td>
+                                    <td width="25%" style="border: none; padding: 0;"></td>
+                                </tr>
+                            </table>
+
+                            <table class="meta-table" cellpadding="0" cellspacing="0" style="width: 100%; border-collapse: collapse; margin-top: 0pt; margin-bottom: 1pt; font-size: 16pt; mso-padding-alt: 0pt 0pt 0pt 0pt;">
+                                <tr style="height: 21pt; mso-height-rule: at-least;">
+                                    <td width="2.2cm" valign="bottom" style="padding: 0; line-height: 1.12; vertical-align: bottom; font-size: 16pt;"><b>ส่วนราชการ</b></td>
+                                    <td colspan="3" valign="bottom" style="border-bottom: 1.0pt dotted black; padding: 0pt 0pt 1pt 4pt; mso-padding-alt: 0pt 0pt 1pt 4pt; mso-padding-bottom-alt: 1pt; line-height: 1.12; vertical-align: bottom; font-size: 16pt;">${this.toThaiNumerals(this.memo.department)}</td>
+                                </tr>
+                                <tr style="height: 21pt; mso-height-rule: at-least;">
+                                    <td valign="bottom" style="padding: 0; line-height: 1.12; vertical-align: bottom; font-size: 16pt;"><b>ที่</b></td>
+                                    <td width="52%" valign="bottom" style="border-bottom: 1.0pt dotted black; padding: 0pt 0pt 1pt 4pt; mso-padding-alt: 0pt 0pt 1pt 4pt; mso-padding-bottom-alt: 1pt; line-height: 1.12; vertical-align: bottom; font-size: 16pt;">${this.toThaiNumerals(this.memo.docPrefix)} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /${this.toThaiNumerals(this.memoYearBE)}</td>
+                                    <td width="1.3cm" align="right" valign="bottom" style="padding: 0pt 4pt 1pt 0pt; white-space: nowrap; line-height: 1.12; vertical-align: bottom; font-size: 16pt;"><b>วันที่</b></td>
+                                    <td valign="bottom" style="border-bottom: 1.0pt dotted black; padding: 0pt 0pt 1pt 4pt; mso-padding-alt: 0pt 0pt 1pt 4pt; mso-padding-bottom-alt: 1pt; line-height: 1.12; vertical-align: bottom; font-size: 16pt;">&nbsp;&nbsp;${this.formatThaiDate(this.memo.date, true)}</td>
+                                </tr>
+                                <tr style="height: 21pt; mso-height-rule: at-least;">
+                                    <td valign="bottom" style="padding: 0; line-height: 1.12; vertical-align: bottom; font-size: 16pt;"><b>เรื่อง</b></td>
+                                    <td colspan="3" valign="bottom" style="border-bottom: 1.0pt dotted black; padding: 0pt 0pt 1pt 4pt; mso-padding-alt: 0pt 0pt 1pt 4pt; mso-padding-bottom-alt: 1pt; line-height: 1.12; vertical-align: bottom; font-size: 16pt;">${this.memo.subject}</td>
+                                </tr>
+                            </table>
+
+                            <p style="margin: 2pt 0 2pt 0; font-size: 16pt;"><b>เรียน</b> &nbsp;&nbsp;${this.toThaiNumerals(this.memo.targetSignerHeading)}</p>
+
+                            <p style="margin: 0 0 1.5pt 0; text-indent: 1.5cm; mso-char-indent-count: 0; text-align: justify; text-justify: inter-cluster; line-height: 1.05;">
+                                ตามที่ สาขาวิศวกรรมโยธาและสิ่งแวดล้อม คณะวิศวกรรมศาสตร์ ได้ดำเนินโครงการบริการสังคม ในด้านการบริการทดสอบวัสดุก่อสร้างให้กับหน่วยงานภาครัฐและเอกชน เพื่อดำเนินการทดสอบประเมินผลและรับรองคุณภาพของวัสดุในงานก่อสร้าง ทั้งในห้องปฏิบัติการและภาคสนาม ให้บริการแก่หน่วยงานภาครัฐและเอกชน ที่เกี่ยวข้องกับงานก่อสร้าง หรืองานที่ต้องมีการทดสอบวัสดุ สาขาวิศวกรรมโยธาและสิ่งแวดล้อม ได้ดำเนินการทดสอบวัสดุเรียบร้อยแล้ว นั้น
+                            </p>
+
+                            <p style="margin: 0 0 1.5pt 0; text-indent: 1.5cm; mso-char-indent-count: 0; text-align: justify; text-justify: inter-cluster; line-height: 1.05;">
+                                ในการนี้ สาขาวิศวกรรมโยธาและสิ่งแวดล้อม จึงขอความอนุเคราะห์ท่านลงนามหนังสือผลทดสอบวัสดุ เพื่อให้การดำเนินงานทดสอบวัสดุเป็นไปด้วยความเรียบร้อย โดยหนังสือขอความอนุเคราะห์จากหน่วยงานภายนอกมีรายละเอียดดังเอกสารที่แนบมา จำนวน ${this.toThaiNumerals(this.memoItems.length)} ฉบับ ดังนี้
+                            </p>
+
+                            <table class="items-table" cellpadding="0" cellspacing="0">
+                                <tbody>
+                        `;
+
+                        this.page1Items.forEach((item, idx) => {
+                            bodyHtml += `
+                                <tr>
+                                    <td width="50%" valign="top" style="padding-left: 1.5cm; white-space: nowrap;">
+                                        <span style="display: inline-block; width: 0.65cm;">${this.toThaiNumerals(idx + 1)}.</span>${this.formatLetterRef(item)}
+                                    </td>
+                                    <td width="50%" valign="top" style="padding-left: 0.3cm; white-space: nowrap;">
+                                        ${this.toThaiNumerals(this.cleanText(item.requestor))}
+                                    </td>
+                                </tr>
+                            `;
+                        });
+
+                        bodyHtml += `
+                                </tbody>
+                            </table>
+                        `;
+
+                        if (this.totalPages === 1) {
+                            const closingMarginTop = isTightSinglePage ? '6pt' : '12pt';
+                            const signBlankLines = isTightSinglePage
+                                ? `<p style="margin: 0; line-height: 16pt; mso-line-height-rule: exactly;">&nbsp;</p>
+                                   <p style="margin: 0; line-height: 16pt; mso-line-height-rule: exactly;">&nbsp;</p>`
+                                : `<p style="margin: 0; line-height: 18pt; mso-line-height-rule: exactly;">&nbsp;</p>
+                                   <p style="margin: 0; line-height: 18pt; mso-line-height-rule: exactly;">&nbsp;</p>
+                                   <p style="margin: 0; line-height: 18pt; mso-line-height-rule: exactly;">&nbsp;</p>`;
+
+                            bodyHtml += `
+                                <p style="margin: ${closingMarginTop} 0 2pt 0; font-size: 16pt; text-indent: 1.5cm; mso-char-indent-count: 0;">${this.memo.closingText}</p>
+
+                                <table width="100%" cellpadding="0" cellspacing="0" style="border: none; margin-top: 2pt;">
+                                    <tr>
+                                        <td width="45%" style="border: none;"></td>
+                                        <td width="55%" align="center" style="border: none; font-size: 16pt; line-height: 1.08;">
+                                            ${signBlankLines}
+                                            <p style="margin: 0;">(${this.memo.submitterName})</p>
+                                            <p style="margin: 1pt 0 0 0;">${this.memo.submitterPosition}</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            `;
+                        } else {
+                            bodyHtml += `
+                                <p align="right" style="text-align: right; font-size: 16pt; margin: 4pt 0 0 0; padding-right: 0.5cm; mso-line-height-rule: exactly; line-height: 18pt;">
+                                    ${this.nextItemCatchword}
+                                </p>
+
+                                <br clear=all style='mso-special-character:line-break;page-break-before:always'>
+
+                                <p align="center" style="text-align: center; font-size: 16pt; margin: 2pt 0 10pt 0;">-${this.toThaiNumerals(2)}-</p>
+
+                                <table class="items-table" cellpadding="0" cellspacing="0">
+                                    <tbody>
+                            `;
+
+                            this.page2Items.forEach((item, idx) => {
+                                const realIdx = this.actualSplitIndex + idx;
+                                bodyHtml += `
+                                    <tr>
+                                        <td width="50%" valign="top" style="padding-left: 1.5cm; white-space: nowrap;">
+                                            <span style="display: inline-block; width: 0.65cm;">${this.toThaiNumerals(realIdx + 1)}.</span>${this.formatLetterRef(item)}
+                                        </td>
+                                        <td width="50%" valign="top" style="padding-left: 0.3cm; white-space: nowrap;">
+                                            ${this.toThaiNumerals(this.cleanText(item.requestor))}
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+
+                            bodyHtml += `
+                                    </tbody>
+                                </table>
+
+                                <p style="margin: 10pt 0 2pt 0; font-size: 16pt; text-indent: 1.5cm; mso-char-indent-count: 0;">${this.memo.closingText}</p>
+
+                                <table width="100%" cellpadding="0" cellspacing="0" style="border: none; margin-top: 6pt;">
+                                    <tr>
+                                        <td width="45%" style="border: none;"></td>
+                                        <td width="55%" align="center" style="border: none; font-size: 16pt; line-height: 1.08;">
+                                            <p style="margin: 0; line-height: 18pt; mso-line-height-rule: exactly;">&nbsp;</p>
+                                            <p style="margin: 0; line-height: 18pt; mso-line-height-rule: exactly;">&nbsp;</p>
+                                            <p style="margin: 0; line-height: 18pt; mso-line-height-rule: exactly;">&nbsp;</p>
+                                            <p style="margin: 0;">(${this.memo.submitterName})</p>
+                                            <p style="margin: 1pt 0 0 0;">${this.memo.submitterPosition}</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            `;
+                        }
+
+                        const mhtmlContent = this.buildMhtmlDocument(bodyHtml, images, extraStyles);
+                        const blob = new Blob([mhtmlContent], { type: 'application/msword;charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+                        URL.revokeObjectURL(url);
+                        this.showToast(`ส่งออกบันทึกข้อความลง Word สำเร็จ (${this.totalPages} หน้า)`);
+                    } catch (e) {
+                        this.showToast('เกิดข้อผิดพลาดในการส่งออกไฟล์ Word');
+                    }
+                },
+
+                exportMemoJson() {
+                    const data = {
+                        app: 'RMUTL_Exact_Memo_And_Cover_Batch',
+                        version: '5.2',
+                        exportedAt: new Date().toISOString(),
+                        memo: this.memo,
+                        memoItems: this.memoItems,
+                        coverMargins: this.coverMargins,
+                        selectedSignerIndex: this.selectedSignerIndex,
+                        selectedSubmitterIndex: this.selectedSubmitterIndex
+                    };
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Memo_Cover_${this.memo.date || 'batch'}.json`;
+                    a.click();
+                    this.showToast('ส่งออกไฟล์สำรองสำเร็จ (ไม่รวม API Key)');
+                },
+
+                importMemoJson(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const d = JSON.parse(event.target.result);
+                            if (d.memo) this.memo = { ...this.memo, ...d.memo };
+                            if (d.memoItems) this.memoItems = d.memoItems.map(i => this.normalizeItem(i));
+                            if (d.coverMargins) this.coverMargins = { ...this.coverMargins, ...d.coverMargins };
+                            if (d.selectedSignerIndex !== undefined) this.selectedSignerIndex = d.selectedSignerIndex;
+                            if (d.selectedSubmitterIndex !== undefined) this.selectedSubmitterIndex = d.selectedSubmitterIndex;
+                            this.saveState();
+                            this.showToast('นำเข้าไฟล์สำรองสำเร็จ');
+                        } catch (err) {
+                            this.showToast('ไฟล์ JSON ไม่ถูกต้อง');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
